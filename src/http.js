@@ -23,7 +23,7 @@ export default class Http {
    * @param   {Object}  [data]
    * @return  {Promise}
    */
-  static request(
+  static request (
     method: string,
     url: string,
     data: Object,
@@ -31,7 +31,7 @@ export default class Http {
     useMultipartFormData: Boolean,
     showHeader: Boolean,
   ): Promise<*> {
-    if (typeof window !== 'undefined' && window.XMLHttpRequest) {
+    if (typeof window !== 'undefined' && window.XMLHttpRequest && !Api.getProxy()) {
       return Http.xmlHttpRequest(method, url, data);
     }
     return Http.requestPromise(method, url, data, files, useMultipartFormData, showHeader);
@@ -44,11 +44,11 @@ export default class Http {
    * @param   {Object}  [data]
    * @return  {Promise}
    */
-  static xmlHttpRequest(method, url, data): Promise<*> {
+  static xmlHttpRequest (method, url, data): Promise<*> {
     return new Promise((resolve, reject) => {
       const request = new window.XMLHttpRequest();
       request.open(method, url);
-      request.onload = function() {
+      request.onload = function () {
         try {
           const response = JSON.parse(request.response);
 
@@ -90,7 +90,7 @@ export default class Http {
    *   multipart/form-data.
    * @return  {Promise}
    */
-  static requestPromise(
+  static requestPromise (
     method: string,
     url: string,
     data: Object,
@@ -102,7 +102,7 @@ export default class Http {
       method: method,
       uri: url,
       json: !useMultipartFormData,
-      headers: {'User-Agent': `fbbizsdk-nodejs-${Api.VERSION}`},
+      headers: { 'User-Agent': `fbbizsdk-nodejs-${Api.VERSION}` },
       body: Object,
       resolveWithFullResponse: showHeader,
     };
@@ -119,6 +119,13 @@ export default class Http {
       // Use formData instead of body (required by the request-promise library)
       options.formData = Object.assign(data, files);
       delete options.body;
+    }
+
+    const proxy = Api.getProxy();
+
+    if (proxy) {
+      options.proxy = proxy;
+      options.tunnel = true;
     }
 
     return requestPromise(options).catch((response: Object) => {
