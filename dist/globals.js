@@ -541,7 +541,7 @@ var FacebookAdsApi = function () {
   }, {
     key: 'VERSION',
     get: function get() {
-      return 'v5.0';
+      return 'v6.0';
     }
   }, {
     key: 'GRAPH',
@@ -2163,13 +2163,18 @@ var VideoUploadTransferRequestManager = function (_VideoUploadRequestMa2) {
      **/
     value: function sendRequest(context) {
       function _recursive() {
-        var _this8 = this;
-
-        if (_this8._startOffset !== _this8._endOffset) {
+        if (start_offset !== end_offset) {
           return Promise.resolve().then(function () {
-            context.startOffset = _this8._startOffset;
-            context.endOffset = _this8._endOffset;
-            request.setParams(_this8.getParamsFromContext(context), {
+            context.startOffset = start_offset;
+            context.endOffset = end_offset;
+            params = {
+              upload_phase: 'transfer',
+              start_offset: context.startOffset,
+              upload_session_id: context.sessionId,
+              video_file_chunk: context.videoFileChunk
+            };
+
+            request.setParams(params, {
               video_file_chunk: fs.createReadStream(context.filePath, {
                 start: context.startOffset,
                 end: context.endOffset - 1
@@ -2181,9 +2186,8 @@ var VideoUploadTransferRequestManager = function (_VideoUploadRequestMa2) {
             }).then(function (_resp) {
               _response = _resp;
 
-
-              _this8._startOffset = parseInt(_response['start_offset']);
-              _this8._endOffset = parseInt(_response['end_offset']);
+              start_offset = parseInt(_response['start_offset']);
+              end_offset = parseInt(_response['end_offset']);
             }).catch(function (error) {
               if (numRetry > 0) {
                 numRetry = Math.max(numRetry - 1, 0);
@@ -2199,20 +2203,22 @@ var VideoUploadTransferRequestManager = function (_VideoUploadRequestMa2) {
       }
 
       var request,
+          start_offset,
+          end_offset,
           filePath,
           fileSize,
           numRetry,
           response,
           videoFileDescriptor,
+          params,
           _response,
           _this7 = this;
 
       return Promise.resolve().then(function () {
         // Init a VideoUploadRequest
         request = new VideoUploadRequest(_this7._api);
-
-        _this7._startOffset = context.startOffset;
-        _this7._endOffset = context.endOffset;
+        start_offset = context.startOffset;
+        end_offset = context.endOffset;
         filePath = context.filePath;
         fileSize = fs.statSync(filePath).size;
 
@@ -2225,20 +2231,13 @@ var VideoUploadTransferRequestManager = function (_VideoUploadRequestMa2) {
         videoFileDescriptor = fs.openSync(filePath, 'r');
         return _recursive();
       }).then(function () {
+
+        _this7._startOffset = start_offset;
+        _this7._endOffset = end_offset;
         fs.close(videoFileDescriptor, function (err) {});
 
         return response;
       });
-    }
-  }, {
-    key: 'getParamsFromContext',
-    value: function getParamsFromContext(context) {
-      return {
-        upload_phase: 'transfer',
-        start_offset: context.startOffset,
-        upload_session_id: context.sessionId,
-        video_file_chunk: context.videoFileChunk
-      };
     }
   }]);
   return VideoUploadTransferRequestManager;
@@ -2677,6 +2676,8 @@ var AdPreview = function (_AbstractCrudObject) {
         instant_article_standard: 'INSTANT_ARTICLE_STANDARD',
         instream_video_desktop: 'INSTREAM_VIDEO_DESKTOP',
         instream_video_mobile: 'INSTREAM_VIDEO_MOBILE',
+        job_browser_desktop: 'JOB_BROWSER_DESKTOP',
+        job_browser_mobile: 'JOB_BROWSER_MOBILE',
         marketplace_mobile: 'MARKETPLACE_MOBILE',
         messenger_mobile_inbox_media: 'MESSENGER_MOBILE_INBOX_MEDIA',
         messenger_mobile_story_media: 'MESSENGER_MOBILE_STORY_MEDIA',
@@ -2877,6 +2878,7 @@ var AdCreative = function (_AbstractCrudObject) {
         find_a_group: 'FIND_A_GROUP',
         find_your_groups: 'FIND_YOUR_GROUPS',
         follow_news_storyline: 'FOLLOW_NEWS_STORYLINE',
+        follow_user: 'FOLLOW_USER',
         get_directions: 'GET_DIRECTIONS',
         get_offer: 'GET_OFFER',
         get_offer_view: 'GET_OFFER_VIEW',
@@ -2894,8 +2896,10 @@ var AdCreative = function (_AbstractCrudObject) {
         no_button: 'NO_BUTTON',
         open_link: 'OPEN_LINK',
         order_now: 'ORDER_NOW',
+        pay_to_access: 'PAY_TO_ACCESS',
         play_game: 'PLAY_GAME',
         record_now: 'RECORD_NOW',
+        request_time: 'REQUEST_TIME',
         say_thanks: 'SAY_THANKS',
         see_more: 'SEE_MORE',
         sell_now: 'SELL_NOW',
@@ -2927,6 +2931,7 @@ var AdCreative = function (_AbstractCrudObject) {
         page: 'PAGE',
         photo: 'PHOTO',
         post_deleted: 'POST_DELETED',
+        privacy_check_fail: 'PRIVACY_CHECK_FAIL',
         share: 'SHARE',
         status: 'STATUS',
         store_item: 'STORE_ITEM',
@@ -2976,6 +2981,14 @@ var AdCreative = function (_AbstractCrudObject) {
       return Object.freeze({
         dynamic: 'DYNAMIC',
         story_owner: 'STORY_OWNER'
+      });
+    }
+  }, {
+    key: 'InstantCheckoutSetting',
+    get: function get() {
+      return Object.freeze({
+        off: 'off',
+        on: 'on'
       });
     }
   }, {
@@ -3181,14 +3194,10 @@ var AdsInsights = function (_AbstractCrudObject) {
         account_name: 'account_name',
         action_values: 'action_values',
         actions: 'actions',
-        actions_per_impression: 'actions_per_impression',
-        actions_results: 'actions_results',
-        activity_recency: 'activity_recency',
         ad_bid_type: 'ad_bid_type',
         ad_bid_value: 'ad_bid_value',
         ad_click_actions: 'ad_click_actions',
         ad_delivery: 'ad_delivery',
-        ad_format_asset: 'ad_format_asset',
         ad_id: 'ad_id',
         ad_impression_actions: 'ad_impression_actions',
         ad_name: 'ad_name',
@@ -3201,102 +3210,45 @@ var AdsInsights = function (_AbstractCrudObject) {
         adset_id: 'adset_id',
         adset_name: 'adset_name',
         adset_start: 'adset_start',
-        age: 'age',
         age_targeting: 'age_targeting',
-        amount_in_catalog_currency: 'amount_in_catalog_currency',
-        app_store_clicks: 'app_store_clicks',
-        attention_events_per_impression: 'attention_events_per_impression',
-        attention_events_unq_per_reach: 'attention_events_unq_per_reach',
         auction_bid: 'auction_bid',
         auction_competitiveness: 'auction_competitiveness',
         auction_max_competitor_bid: 'auction_max_competitor_bid',
-        body_asset: 'body_asset',
         buying_type: 'buying_type',
-        call_to_action_asset: 'call_to_action_asset',
-        call_to_action_clicks: 'call_to_action_clicks',
-        campaign_delivery: 'campaign_delivery',
-        campaign_end: 'campaign_end',
         campaign_id: 'campaign_id',
         campaign_name: 'campaign_name',
-        campaign_start: 'campaign_start',
-        cancel_subscription_actions: 'cancel_subscription_actions',
         canvas_avg_view_percent: 'canvas_avg_view_percent',
         canvas_avg_view_time: 'canvas_avg_view_time',
-        card_views: 'card_views',
-        catalog_segment_actions: 'catalog_segment_actions',
-        catalog_segment_value_in_catalog_currency: 'catalog_segment_value_in_catalog_currency',
-        catalog_segment_value_mobile_purchase_roas: 'catalog_segment_value_mobile_purchase_roas',
-        catalog_segment_value_website_purchase_roas: 'catalog_segment_value_website_purchase_roas',
         clicks: 'clicks',
-        conditional_time_spent_ms_over_10s_actions: 'conditional_time_spent_ms_over_10s_actions',
-        conditional_time_spent_ms_over_15s_actions: 'conditional_time_spent_ms_over_15s_actions',
-        conditional_time_spent_ms_over_2s_actions: 'conditional_time_spent_ms_over_2s_actions',
-        conditional_time_spent_ms_over_3s_actions: 'conditional_time_spent_ms_over_3s_actions',
-        conditional_time_spent_ms_over_6s_actions: 'conditional_time_spent_ms_over_6s_actions',
-        contact_actions: 'contact_actions',
-        contact_value: 'contact_value',
         conversion_rate_ranking: 'conversion_rate_ranking',
         conversion_values: 'conversion_values',
         conversions: 'conversions',
         cost_per_15_sec_video_view: 'cost_per_15_sec_video_view',
         cost_per_2_sec_continuous_video_view: 'cost_per_2_sec_continuous_video_view',
-        cost_per_action_result: 'cost_per_action_result',
         cost_per_action_type: 'cost_per_action_type',
         cost_per_ad_click: 'cost_per_ad_click',
-        cost_per_completed_video_view: 'cost_per_completed_video_view',
-        cost_per_contact: 'cost_per_contact',
         cost_per_conversion: 'cost_per_conversion',
-        cost_per_customize_product: 'cost_per_customize_product',
         cost_per_dda_countby_convs: 'cost_per_dda_countby_convs',
-        cost_per_donate: 'cost_per_donate',
-        cost_per_dwell: 'cost_per_dwell',
-        cost_per_dwell_3_sec: 'cost_per_dwell_3_sec',
-        cost_per_dwell_5_sec: 'cost_per_dwell_5_sec',
-        cost_per_dwell_7_sec: 'cost_per_dwell_7_sec',
         cost_per_estimated_ad_recallers: 'cost_per_estimated_ad_recallers',
-        cost_per_find_location: 'cost_per_find_location',
         cost_per_inline_link_click: 'cost_per_inline_link_click',
         cost_per_inline_post_engagement: 'cost_per_inline_post_engagement',
         cost_per_one_thousand_ad_impression: 'cost_per_one_thousand_ad_impression',
         cost_per_outbound_click: 'cost_per_outbound_click',
-        cost_per_schedule: 'cost_per_schedule',
-        cost_per_start_trial: 'cost_per_start_trial',
-        cost_per_submit_application: 'cost_per_submit_application',
-        cost_per_subscribe: 'cost_per_subscribe',
+        cost_per_store_visit_action: 'cost_per_store_visit_action',
         cost_per_thruplay: 'cost_per_thruplay',
-        cost_per_total_action: 'cost_per_total_action',
         cost_per_unique_action_type: 'cost_per_unique_action_type',
         cost_per_unique_click: 'cost_per_unique_click',
         cost_per_unique_conversion: 'cost_per_unique_conversion',
         cost_per_unique_inline_link_click: 'cost_per_unique_inline_link_click',
         cost_per_unique_outbound_click: 'cost_per_unique_outbound_click',
-        country: 'country',
         cpc: 'cpc',
         cpm: 'cpm',
         cpp: 'cpp',
         created_time: 'created_time',
-        creative_fingerprint: 'creative_fingerprint',
         ctr: 'ctr',
-        customize_product_actions: 'customize_product_actions',
-        customize_product_value: 'customize_product_value',
         date_start: 'date_start',
         date_stop: 'date_stop',
         dda_countby_convs: 'dda_countby_convs',
-        deduping_1st_source_ratio: 'deduping_1st_source_ratio',
-        deduping_2nd_source_ratio: 'deduping_2nd_source_ratio',
-        deduping_3rd_source_ratio: 'deduping_3rd_source_ratio',
-        deduping_ratio: 'deduping_ratio',
-        deeplink_clicks: 'deeplink_clicks',
-        description_asset: 'description_asset',
-        device_platform: 'device_platform',
-        dma: 'dma',
-        donate_actions: 'donate_actions',
-        donate_value: 'donate_value',
-        dwell_3_sec: 'dwell_3_sec',
-        dwell_5_sec: 'dwell_5_sec',
-        dwell_7_sec: 'dwell_7_sec',
-        dwell_rate: 'dwell_rate',
-        earned_impression: 'earned_impression',
         engagement_rate_ranking: 'engagement_rate_ranking',
         estimated_ad_recall_rate: 'estimated_ad_recall_rate',
         estimated_ad_recall_rate_lower_bound: 'estimated_ad_recall_rate_lower_bound',
@@ -3304,78 +3256,37 @@ var AdsInsights = function (_AbstractCrudObject) {
         estimated_ad_recallers: 'estimated_ad_recallers',
         estimated_ad_recallers_lower_bound: 'estimated_ad_recallers_lower_bound',
         estimated_ad_recallers_upper_bound: 'estimated_ad_recallers_upper_bound',
-        find_location_actions: 'find_location_actions',
-        find_location_value: 'find_location_value',
         frequency: 'frequency',
-        frequency_value: 'frequency_value',
         full_view_impressions: 'full_view_impressions',
         full_view_reach: 'full_view_reach',
-        gender: 'gender',
         gender_targeting: 'gender_targeting',
-        hourly_stats_aggregated_by_advertiser_time_zone: 'hourly_stats_aggregated_by_advertiser_time_zone',
-        hourly_stats_aggregated_by_audience_time_zone: 'hourly_stats_aggregated_by_audience_time_zone',
-        image_asset: 'image_asset',
-        impression_device: 'impression_device',
         impressions: 'impressions',
-        impressions_auto_refresh: 'impressions_auto_refresh',
-        impressions_gross: 'impressions_gross',
         inline_link_click_ctr: 'inline_link_click_ctr',
         inline_link_clicks: 'inline_link_clicks',
         inline_post_engagement: 'inline_post_engagement',
         instant_experience_clicks_to_open: 'instant_experience_clicks_to_open',
         instant_experience_clicks_to_start: 'instant_experience_clicks_to_start',
         instant_experience_outbound_clicks: 'instant_experience_outbound_clicks',
-        interactive_component_tap: 'interactive_component_tap',
         labels: 'labels',
-        link_url_asset: 'link_url_asset',
         location: 'location',
-        media_asset: 'media_asset',
         mobile_app_purchase_roas: 'mobile_app_purchase_roas',
-        newsfeed_avg_position: 'newsfeed_avg_position',
-        newsfeed_clicks: 'newsfeed_clicks',
-        newsfeed_impressions: 'newsfeed_impressions',
         objective: 'objective',
-        optimization_goal: 'optimization_goal',
         outbound_clicks: 'outbound_clicks',
         outbound_clicks_ctr: 'outbound_clicks_ctr',
-        performance_indicator: 'performance_indicator',
-        place_page_id: 'place_page_id',
         place_page_name: 'place_page_name',
-        placement: 'placement',
-        platform_position: 'platform_position',
-        product_id: 'product_id',
-        publisher_platform: 'publisher_platform',
         purchase_roas: 'purchase_roas',
         quality_ranking: 'quality_ranking',
         quality_score_ectr: 'quality_score_ectr',
         quality_score_ecvr: 'quality_score_ecvr',
-        quality_score_enfbr: 'quality_score_enfbr',
         quality_score_organic: 'quality_score_organic',
         reach: 'reach',
-        recurring_subscription_payment_actions: 'recurring_subscription_payment_actions',
-        region: 'region',
-        rule_asset: 'rule_asset',
-        schedule_actions: 'schedule_actions',
-        schedule_value: 'schedule_value',
         social_spend: 'social_spend',
         spend: 'spend',
-        start_trial_actions: 'start_trial_actions',
-        start_trial_value: 'start_trial_value',
-        submit_application_actions: 'submit_application_actions',
-        submit_application_value: 'submit_application_value',
-        subscribe_actions: 'subscribe_actions',
-        subscribe_value: 'subscribe_value',
-        thumb_stops: 'thumb_stops',
-        title_asset: 'title_asset',
-        today_spend: 'today_spend',
-        total_action_value: 'total_action_value',
-        total_actions: 'total_actions',
-        total_unique_actions: 'total_unique_actions',
+        store_visit_actions: 'store_visit_actions',
         unique_actions: 'unique_actions',
         unique_clicks: 'unique_clicks',
         unique_conversions: 'unique_conversions',
         unique_ctr: 'unique_ctr',
-        unique_impressions: 'unique_impressions',
         unique_inline_link_click_ctr: 'unique_inline_link_click_ctr',
         unique_inline_link_clicks: 'unique_inline_link_clicks',
         unique_link_clicks_ctr: 'unique_link_clicks_ctr',
@@ -3386,10 +3297,7 @@ var AdsInsights = function (_AbstractCrudObject) {
         updated_time: 'updated_time',
         video_15_sec_watched_actions: 'video_15_sec_watched_actions',
         video_30_sec_watched_actions: 'video_30_sec_watched_actions',
-        video_asset: 'video_asset',
         video_avg_time_watched_actions: 'video_avg_time_watched_actions',
-        video_complete_watched_actions: 'video_complete_watched_actions',
-        video_completed_view_or_15s_passed_actions: 'video_completed_view_or_15s_passed_actions',
         video_continuous_2_sec_watched_actions: 'video_continuous_2_sec_watched_actions',
         video_p100_watched_actions: 'video_p100_watched_actions',
         video_p25_watched_actions: 'video_p25_watched_actions',
@@ -3403,7 +3311,6 @@ var AdsInsights = function (_AbstractCrudObject) {
         video_play_retention_graph_actions: 'video_play_retention_graph_actions',
         video_thruplay_watched_actions: 'video_thruplay_watched_actions',
         video_time_watched_actions: 'video_time_watched_actions',
-        website_clicks: 'website_clicks',
         website_ctr: 'website_ctr',
         website_purchase_roas: 'website_purchase_roas',
         wish_bid: 'wish_bid'
@@ -3545,12 +3452,6 @@ var AdsInsights = function (_AbstractCrudObject) {
 
 var AdReportRun = function (_AbstractCrudObject) {
   inherits(AdReportRun, _AbstractCrudObject);
-
-  function AdReportRun() {
-    classCallCheck(this, AdReportRun);
-    return possibleConstructorReturn(this, (AdReportRun.__proto__ || Object.getPrototypeOf(AdReportRun)).apply(this, arguments));
-  }
-
   createClass(AdReportRun, [{
     key: 'getInsights',
     value: function getInsights(fields) {
@@ -3559,17 +3460,6 @@ var AdReportRun = function (_AbstractCrudObject) {
 
       return this.getEdge(AdsInsights, fields, params, fetchFirstPage, '/insights');
     }
-
-    // $FlowFixMe : Support Generic Types
-
-  }, {
-    key: 'delete',
-    value: function _delete(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return get$1(AdReportRun.prototype.__proto__ || Object.getPrototypeOf(AdReportRun.prototype), 'delete', this).call(this, params);
-    }
   }, {
     key: 'get',
     value: function get(fields) {
@@ -3577,17 +3467,6 @@ var AdReportRun = function (_AbstractCrudObject) {
 
       // $FlowFixMe : Support Generic Types
       return this.read(fields, params);
-    }
-
-    // $FlowFixMe : Support Generic Types
-
-  }, {
-    key: 'update',
-    value: function update(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return get$1(AdReportRun.prototype.__proto__ || Object.getPrototypeOf(AdReportRun.prototype), 'update', this).call(this, params);
     }
   }], [{
     key: 'Fields',
@@ -3609,6 +3488,20 @@ var AdReportRun = function (_AbstractCrudObject) {
       });
     }
   }]);
+
+  function AdReportRun() {
+    var id = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : null;
+    var data = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+    var parentId = arguments[2];
+    var api = arguments[3];
+    classCallCheck(this, AdReportRun);
+
+    var _this = possibleConstructorReturn(this, (AdReportRun.__proto__ || Object.getPrototypeOf(AdReportRun)).call(this));
+
+    _this.id = data.report_run_id;
+    return _this;
+  }
+
   return AdReportRun;
 }(AbstractCrudObject);
 
@@ -3746,13 +3639,6 @@ var Ad = function (_AbstractCrudObject) {
       return this.getEdge(AdCreative, fields, params, fetchFirstPage, '/adcreatives');
     }
   }, {
-    key: 'deleteAdLabels',
-    value: function deleteAdLabels() {
-      var params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-
-      return get$1(Ad.prototype.__proto__ || Object.getPrototypeOf(Ad.prototype), 'deleteEdge', this).call(this, '/adlabels', params);
-    }
-  }, {
     key: 'createAdLabel',
     value: function createAdLabel(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -3820,13 +3706,6 @@ var Ad = function (_AbstractCrudObject) {
       var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
 
       return this.getEdge(TargetingSentenceLine, fields, params, fetchFirstPage, '/targetingsentencelines');
-    }
-  }, {
-    key: 'createTrackingTag',
-    value: function createTrackingTag(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/trackingtag', fields, params);
     }
 
     // $FlowFixMe : Support Generic Types
@@ -4101,9 +3980,11 @@ var AdActivity = function (_AbstractCrudObject) {
         update_ad_set_bidding: 'update_ad_set_bidding',
         update_ad_set_budget: 'update_ad_set_budget',
         update_ad_set_duration: 'update_ad_set_duration',
+        update_ad_set_min_spend_target: 'update_ad_set_min_spend_target',
         update_ad_set_name: 'update_ad_set_name',
         update_ad_set_optimization_goal: 'update_ad_set_optimization_goal',
         update_ad_set_run_status: 'update_ad_set_run_status',
+        update_ad_set_spend_cap: 'update_ad_set_spend_cap',
         update_ad_set_target_spec: 'update_ad_set_target_spec',
         update_ad_targets_spec: 'update_ad_targets_spec',
         update_adgroup_stop_delivery: 'update_adgroup_stop_delivery',
@@ -4170,17 +4051,6 @@ var AdPlacePageSet = function (_AbstractCrudObject) {
 
       // $FlowFixMe : Support Generic Types
       return this.read(fields, params);
-    }
-
-    // $FlowFixMe : Support Generic Types
-
-  }, {
-    key: 'update',
-    value: function update(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return get$1(AdPlacePageSet.prototype.__proto__ || Object.getPrototypeOf(AdPlacePageSet.prototype), 'update', this).call(this, params);
     }
   }], [{
     key: 'Fields',
@@ -4331,6 +4201,7 @@ var ContentDeliveryReport = function (_AbstractCrudObject) {
       return Object.freeze({
         audience_network: 'AUDIENCE_NETWORK',
         facebook: 'FACEBOOK',
+        hidden_aaa: 'HIDDEN_AAA',
         instagram: 'INSTAGRAM',
         messenger: 'MESSENGER',
         unknown: 'UNKNOWN',
@@ -4343,14 +4214,17 @@ var ContentDeliveryReport = function (_AbstractCrudObject) {
       return Object.freeze({
         all_placements: 'ALL_PLACEMENTS',
         an_classic: 'AN_CLASSIC',
-        facebook_groups: 'FACEBOOK_GROUPS',
+        facebook_groups_feed: 'FACEBOOK_GROUPS_FEED',
         facebook_stories: 'FACEBOOK_STORIES',
         feed: 'FEED',
         groups: 'GROUPS',
+        hidden_aaa: 'HIDDEN_AAA',
         instagram_explore: 'INSTAGRAM_EXPLORE',
+        instagram_igtv: 'INSTAGRAM_IGTV',
         instagram_stories: 'INSTAGRAM_STORIES',
         instant_article: 'INSTANT_ARTICLE',
         instream_video: 'INSTREAM_VIDEO',
+        jobs_browser: 'JOBS_BROWSER',
         marketplace: 'MARKETPLACE',
         messenger_inbox: 'MESSENGER_INBOX',
         messenger_stories: 'MESSENGER_STORIES',
@@ -4358,7 +4232,6 @@ var ContentDeliveryReport = function (_AbstractCrudObject) {
         rewarded_video: 'REWARDED_VIDEO',
         right_hand_column: 'RIGHT_HAND_COLUMN',
         search: 'SEARCH',
-        search_serp: 'SEARCH_SERP',
         status: 'STATUS',
         suggested_video: 'SUGGESTED_VIDEO',
         unknown: 'UNKNOWN',
@@ -4429,7 +4302,7 @@ var AdCampaignDeliveryEstimate = function (_AbstractCrudObject) {
         thruplay: 'THRUPLAY',
         two_second_continuous_video_views: 'TWO_SECOND_CONTINUOUS_VIDEO_VIEWS',
         value: 'VALUE',
-        video_views: 'VIDEO_VIEWS'
+        visit_instagram_profile: 'VISIT_INSTAGRAM_PROFILE'
       });
     }
   }]);
@@ -4637,10 +4510,12 @@ var AdSet = function (_AbstractCrudObject) {
         instagram_actor_id: 'instagram_actor_id',
         is_dynamic_creative: 'is_dynamic_creative',
         issues_info: 'issues_info',
+        learning_stage_info: 'learning_stage_info',
         lifetime_budget: 'lifetime_budget',
         lifetime_imps: 'lifetime_imps',
         lifetime_min_spend_target: 'lifetime_min_spend_target',
         lifetime_spend_cap: 'lifetime_spend_cap',
+        multi_optimization_goal_weight: 'multi_optimization_goal_weight',
         name: 'name',
         optimization_goal: 'optimization_goal',
         optimization_sub_event: 'optimization_sub_event',
@@ -4665,6 +4540,7 @@ var AdSet = function (_AbstractCrudObject) {
     key: 'BidStrategy',
     get: function get() {
       return Object.freeze({
+        cost_cap: 'COST_CAP',
         lowest_cost_without_cap: 'LOWEST_COST_WITHOUT_CAP',
         lowest_cost_with_bid_cap: 'LOWEST_COST_WITH_BID_CAP',
         target_cost: 'TARGET_COST'
@@ -4682,8 +4558,7 @@ var AdSet = function (_AbstractCrudObject) {
         offer_claims: 'OFFER_CLAIMS',
         page_likes: 'PAGE_LIKES',
         post_engagement: 'POST_ENGAGEMENT',
-        thruplay: 'THRUPLAY',
-        video_views: 'VIDEO_VIEWS'
+        thruplay: 'THRUPLAY'
       });
     }
   }, {
@@ -4737,7 +4612,7 @@ var AdSet = function (_AbstractCrudObject) {
         thruplay: 'THRUPLAY',
         two_second_continuous_video_views: 'TWO_SECOND_CONTINUOUS_VIDEO_VIEWS',
         value: 'VALUE',
-        video_views: 'VIDEO_VIEWS'
+        visit_instagram_profile: 'VISIT_INSTAGRAM_PROFILE'
       });
     }
   }, {
@@ -4754,25 +4629,25 @@ var AdSet = function (_AbstractCrudObject) {
     key: 'DatePreset',
     get: function get() {
       return Object.freeze({
-        last_14d: 'LAST_14D',
-        last_28d: 'LAST_28D',
-        last_30d: 'LAST_30D',
-        last_3d: 'LAST_3D',
-        last_7d: 'LAST_7D',
-        last_90d: 'LAST_90D',
-        last_month: 'LAST_MONTH',
-        last_quarter: 'LAST_QUARTER',
-        last_week_mon_sun: 'LAST_WEEK_MON_SUN',
-        last_week_sun_sat: 'LAST_WEEK_SUN_SAT',
-        last_year: 'LAST_YEAR',
-        lifetime: 'LIFETIME',
-        this_month: 'THIS_MONTH',
-        this_quarter: 'THIS_QUARTER',
-        this_week_mon_today: 'THIS_WEEK_MON_TODAY',
-        this_week_sun_today: 'THIS_WEEK_SUN_TODAY',
-        this_year: 'THIS_YEAR',
-        today: 'TODAY',
-        yesterday: 'YESTERDAY'
+        last_14d: 'last_14d',
+        last_28d: 'last_28d',
+        last_30d: 'last_30d',
+        last_3d: 'last_3d',
+        last_7d: 'last_7d',
+        last_90d: 'last_90d',
+        last_month: 'last_month',
+        last_quarter: 'last_quarter',
+        last_week_mon_sun: 'last_week_mon_sun',
+        last_week_sun_sat: 'last_week_sun_sat',
+        last_year: 'last_year',
+        lifetime: 'lifetime',
+        this_month: 'this_month',
+        this_quarter: 'this_quarter',
+        this_week_mon_today: 'this_week_mon_today',
+        this_week_sun_today: 'this_week_sun_today',
+        this_year: 'this_year',
+        today: 'today',
+        yesterday: 'yesterday'
       });
     }
   }, {
@@ -4802,6 +4677,16 @@ var AdSet = function (_AbstractCrudObject) {
         extended_exploration: 'EXTENDED_EXPLORATION',
         limited_exploration: 'LIMITED_EXPLORATION',
         none_exploration: 'NONE_EXPLORATION'
+      });
+    }
+  }, {
+    key: 'MultiOptimizationGoalWeight',
+    get: function get() {
+      return Object.freeze({
+        balanced: 'BALANCED',
+        prefer_event: 'PREFER_EVENT',
+        prefer_install: 'PREFER_INSTALL',
+        undefined: 'UNDEFINED'
       });
     }
   }, {
@@ -4880,13 +4765,6 @@ var Campaign = function (_AbstractCrudObject) {
       var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
 
       return this.getEdge(AdStudy, fields, params, fetchFirstPage, '/ad_studies');
-    }
-  }, {
-    key: 'deleteAdLabels',
-    value: function deleteAdLabels() {
-      var params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-
-      return get$1(Campaign.prototype.__proto__ || Object.getPrototypeOf(Campaign.prototype), 'deleteEdge', this).call(this, '/adlabels', params);
     }
   }, {
     key: 'createAdLabel',
@@ -5029,6 +4907,7 @@ var Campaign = function (_AbstractCrudObject) {
     key: 'BidStrategy',
     get: function get() {
       return Object.freeze({
+        cost_cap: 'COST_CAP',
         lowest_cost_without_cap: 'LOWEST_COST_WITHOUT_CAP',
         lowest_cost_with_bid_cap: 'LOWEST_COST_WITH_BID_CAP',
         target_cost: 'TARGET_COST'
@@ -5274,40 +5153,6 @@ var AdStudyCell = function (_AbstractCrudObject) {
  * 
  */
 /**
- * AdsTALHealthCheckError
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var AdsTALHealthCheckError = function (_AbstractCrudObject) {
-  inherits(AdsTALHealthCheckError, _AbstractCrudObject);
-
-  function AdsTALHealthCheckError() {
-    classCallCheck(this, AdsTALHealthCheckError);
-    return possibleConstructorReturn(this, (AdsTALHealthCheckError.__proto__ || Object.getPrototypeOf(AdsTALHealthCheckError)).apply(this, arguments));
-  }
-
-  createClass(AdsTALHealthCheckError, null, [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        error_code: 'error_code',
-        target_id: 'target_id'
-      });
-    }
-  }]);
-  return AdsTALHealthCheckError;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
  * AssignedUser
  * @extends AbstractCrudObject
  * @see {@link https://developers.facebook.com/docs/marketing-api/}
@@ -5333,357 +5178,6 @@ var AssignedUser = function (_AbstractCrudObject) {
     }
   }]);
   return AssignedUser;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
- * CustomAudiencePrefillState
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var CustomAudiencePrefillState = function (_AbstractCrudObject) {
-  inherits(CustomAudiencePrefillState, _AbstractCrudObject);
-
-  function CustomAudiencePrefillState() {
-    classCallCheck(this, CustomAudiencePrefillState);
-    return possibleConstructorReturn(this, (CustomAudiencePrefillState.__proto__ || Object.getPrototypeOf(CustomAudiencePrefillState)).apply(this, arguments));
-  }
-
-  createClass(CustomAudiencePrefillState, null, [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        description: 'description',
-        num_added: 'num_added',
-        status: 'status'
-      });
-    }
-  }]);
-  return CustomAudiencePrefillState;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
- * CustomAudienceSession
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var CustomAudienceSession = function (_AbstractCrudObject) {
-  inherits(CustomAudienceSession, _AbstractCrudObject);
-
-  function CustomAudienceSession() {
-    classCallCheck(this, CustomAudienceSession);
-    return possibleConstructorReturn(this, (CustomAudienceSession.__proto__ || Object.getPrototypeOf(CustomAudienceSession)).apply(this, arguments));
-  }
-
-  createClass(CustomAudienceSession, null, [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        end_time: 'end_time',
-        num_invalid_entries: 'num_invalid_entries',
-        num_matched: 'num_matched',
-        num_received: 'num_received',
-        progress: 'progress',
-        session_id: 'session_id',
-        stage: 'stage',
-        start_time: 'start_time'
-      });
-    }
-  }]);
-  return CustomAudienceSession;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
- * CustomAudiencesharedAccountInfo
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var CustomAudiencesharedAccountInfo = function (_AbstractCrudObject) {
-  inherits(CustomAudiencesharedAccountInfo, _AbstractCrudObject);
-
-  function CustomAudiencesharedAccountInfo() {
-    classCallCheck(this, CustomAudiencesharedAccountInfo);
-    return possibleConstructorReturn(this, (CustomAudiencesharedAccountInfo.__proto__ || Object.getPrototypeOf(CustomAudiencesharedAccountInfo)).apply(this, arguments));
-  }
-
-  createClass(CustomAudiencesharedAccountInfo, null, [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        account_id: 'account_id',
-        account_name: 'account_name',
-        business_id: 'business_id',
-        business_name: 'business_name',
-        sharing_status: 'sharing_status'
-      });
-    }
-  }]);
-  return CustomAudiencesharedAccountInfo;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
- * CustomAudience
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var CustomAudience = function (_AbstractCrudObject) {
-  inherits(CustomAudience, _AbstractCrudObject);
-
-  function CustomAudience() {
-    classCallCheck(this, CustomAudience);
-    return possibleConstructorReturn(this, (CustomAudience.__proto__ || Object.getPrototypeOf(CustomAudience)).apply(this, arguments));
-  }
-
-  createClass(CustomAudience, [{
-    key: 'deleteAdAccounts',
-    value: function deleteAdAccounts() {
-      var params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-
-      return get$1(CustomAudience.prototype.__proto__ || Object.getPrototypeOf(CustomAudience.prototype), 'deleteEdge', this).call(this, '/adaccounts', params);
-    }
-  }, {
-    key: 'getAdAccounts',
-    value: function getAdAccounts(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(AdAccount, fields, params, fetchFirstPage, '/adaccounts');
-    }
-  }, {
-    key: 'createAdAccount',
-    value: function createAdAccount(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/adaccounts', fields, params, CustomAudience);
-    }
-  }, {
-    key: 'getAds',
-    value: function getAds(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(Ad, fields, params, fetchFirstPage, '/ads');
-    }
-  }, {
-    key: 'getPrefills',
-    value: function getPrefills(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(CustomAudiencePrefillState, fields, params, fetchFirstPage, '/prefills');
-    }
-  }, {
-    key: 'getSessions',
-    value: function getSessions(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(CustomAudienceSession, fields, params, fetchFirstPage, '/sessions');
-    }
-  }, {
-    key: 'getSharedAccountInfo',
-    value: function getSharedAccountInfo(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(CustomAudiencesharedAccountInfo, fields, params, fetchFirstPage, '/shared_account_info');
-    }
-  }, {
-    key: 'deleteUpload',
-    value: function deleteUpload() {
-      var params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-
-      return get$1(CustomAudience.prototype.__proto__ || Object.getPrototypeOf(CustomAudience.prototype), 'deleteEdge', this).call(this, '/upload', params);
-    }
-  }, {
-    key: 'createUpload',
-    value: function createUpload(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/upload', fields, params, CustomAudience);
-    }
-  }, {
-    key: 'deleteUsers',
-    value: function deleteUsers() {
-      var params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-
-      return get$1(CustomAudience.prototype.__proto__ || Object.getPrototypeOf(CustomAudience.prototype), 'deleteEdge', this).call(this, '/users', params);
-    }
-  }, {
-    key: 'createUser',
-    value: function createUser(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/users', fields, params, CustomAudience);
-    }
-
-    // $FlowFixMe : Support Generic Types
-
-  }, {
-    key: 'delete',
-    value: function _delete(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return get$1(CustomAudience.prototype.__proto__ || Object.getPrototypeOf(CustomAudience.prototype), 'delete', this).call(this, params);
-    }
-  }, {
-    key: 'get',
-    value: function get(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return this.read(fields, params);
-    }
-
-    // $FlowFixMe : Support Generic Types
-
-  }, {
-    key: 'update',
-    value: function update(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return get$1(CustomAudience.prototype.__proto__ || Object.getPrototypeOf(CustomAudience.prototype), 'update', this).call(this, params);
-    }
-  }], [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        account_id: 'account_id',
-        approximate_count: 'approximate_count',
-        customer_file_source: 'customer_file_source',
-        data_source: 'data_source',
-        data_source_types: 'data_source_types',
-        datafile_custom_audience_uploading_status: 'datafile_custom_audience_uploading_status',
-        delivery_status: 'delivery_status',
-        description: 'description',
-        excluded_custom_audiences: 'excluded_custom_audiences',
-        external_event_source: 'external_event_source',
-        household_audience: 'household_audience',
-        id: 'id',
-        included_custom_audiences: 'included_custom_audiences',
-        is_household: 'is_household',
-        is_snapshot: 'is_snapshot',
-        is_value_based: 'is_value_based',
-        lookalike_audience_ids: 'lookalike_audience_ids',
-        lookalike_spec: 'lookalike_spec',
-        name: 'name',
-        operation_status: 'operation_status',
-        opt_out_link: 'opt_out_link',
-        permission_for_actions: 'permission_for_actions',
-        pixel_id: 'pixel_id',
-        regulated_audience_spec: 'regulated_audience_spec',
-        retention_days: 'retention_days',
-        rev_share_policy_id: 'rev_share_policy_id',
-        rule: 'rule',
-        rule_aggregation: 'rule_aggregation',
-        rule_v2: 'rule_v2',
-        seed_audience: 'seed_audience',
-        sharing_status: 'sharing_status',
-        subtype: 'subtype',
-        time_content_updated: 'time_content_updated',
-        time_created: 'time_created',
-        time_updated: 'time_updated'
-      });
-    }
-  }, {
-    key: 'ClaimObjective',
-    get: function get() {
-      return Object.freeze({
-        automotive_model: 'AUTOMOTIVE_MODEL',
-        collaborative_ads: 'COLLABORATIVE_ADS',
-        home_listing: 'HOME_LISTING',
-        media_title: 'MEDIA_TITLE',
-        product: 'PRODUCT',
-        travel: 'TRAVEL',
-        vehicle: 'VEHICLE',
-        vehicle_offer: 'VEHICLE_OFFER'
-      });
-    }
-  }, {
-    key: 'ContentType',
-    get: function get() {
-      return Object.freeze({
-        automotive_model: 'AUTOMOTIVE_MODEL',
-        destination: 'DESTINATION',
-        flight: 'FLIGHT',
-        home_listing: 'HOME_LISTING',
-        hotel: 'HOTEL',
-        media_title: 'MEDIA_TITLE',
-        offline_product: 'OFFLINE_PRODUCT',
-        product: 'PRODUCT',
-        vehicle: 'VEHICLE',
-        vehicle_offer: 'VEHICLE_OFFER'
-      });
-    }
-  }, {
-    key: 'CustomerFileSource',
-    get: function get() {
-      return Object.freeze({
-        both_user_and_partner_provided: 'BOTH_USER_AND_PARTNER_PROVIDED',
-        partner_provided_only: 'PARTNER_PROVIDED_ONLY',
-        user_provided_only: 'USER_PROVIDED_ONLY'
-      });
-    }
-  }, {
-    key: 'Subtype',
-    get: function get() {
-      return Object.freeze({
-        app: 'APP',
-        bag_of_accounts: 'BAG_OF_ACCOUNTS',
-        claim: 'CLAIM',
-        custom: 'CUSTOM',
-        engagement: 'ENGAGEMENT',
-        fox: 'FOX',
-        lookalike: 'LOOKALIKE',
-        managed: 'MANAGED',
-        measurement: 'MEASUREMENT',
-        offline_conversion: 'OFFLINE_CONVERSION',
-        partner: 'PARTNER',
-        regulated_categories_audience: 'REGULATED_CATEGORIES_AUDIENCE',
-        study_rule_audience: 'STUDY_RULE_AUDIENCE',
-        video: 'VIDEO',
-        website: 'WEBSITE'
-      });
-    }
-  }]);
-  return CustomAudience;
 }(AbstractCrudObject);
 
 /**
@@ -5766,6 +5260,7 @@ var AdNetworkAnalyticsSyncQueryResult = function (_AbstractCrudObject) {
     key: 'Breakdowns',
     get: function get() {
       return Object.freeze({
+        ad_space: 'AD_SPACE',
         age: 'AGE',
         app: 'APP',
         clicked_view_tag: 'CLICKED_VIEW_TAG',
@@ -5777,6 +5272,8 @@ var AdNetworkAnalyticsSyncQueryResult = function (_AbstractCrudObject) {
         display_format: 'DISPLAY_FORMAT',
         fail_reason: 'FAIL_REASON',
         gender: 'GENDER',
+        instant_article_id: 'INSTANT_ARTICLE_ID',
+        instant_article_page_id: 'INSTANT_ARTICLE_PAGE_ID',
         placement: 'PLACEMENT',
         placement_name: 'PLACEMENT_NAME',
         platform: 'PLATFORM',
@@ -5914,6 +5411,61 @@ var AdPlacement = function (_AbstractCrudObject) {
     }
   }]);
   return AdPlacement;
+}(AbstractCrudObject);
+
+/**
+ * Copyright (c) 2017-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ * 
+ */
+/**
+ * BusinessCreativeFolderSharingAgreement
+ * @extends AbstractCrudObject
+ * @see {@link https://developers.facebook.com/docs/marketing-api/}
+ */
+
+var BusinessCreativeFolderSharingAgreement = function (_AbstractCrudObject) {
+  inherits(BusinessCreativeFolderSharingAgreement, _AbstractCrudObject);
+
+  function BusinessCreativeFolderSharingAgreement() {
+    classCallCheck(this, BusinessCreativeFolderSharingAgreement);
+    return possibleConstructorReturn(this, (BusinessCreativeFolderSharingAgreement.__proto__ || Object.getPrototypeOf(BusinessCreativeFolderSharingAgreement)).apply(this, arguments));
+  }
+
+  createClass(BusinessCreativeFolderSharingAgreement, [{
+    key: 'get',
+    value: function get(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      // $FlowFixMe : Support Generic Types
+      return this.read(fields, params);
+    }
+  }], [{
+    key: 'Fields',
+    get: function get() {
+      return Object.freeze({
+        folder_id: 'folder_id',
+        id: 'id',
+        requesting_business: 'requesting_business',
+        status: 'status'
+      });
+    }
+  }, {
+    key: 'RequestStatus',
+    get: function get() {
+      return Object.freeze({
+        approve: 'APPROVE',
+        decline: 'DECLINE',
+        expired: 'EXPIRED',
+        in_progress: 'IN_PROGRESS',
+        pending: 'PENDING'
+      });
+    }
+  }]);
+  return BusinessCreativeFolderSharingAgreement;
 }(AbstractCrudObject);
 
 /**
@@ -6096,14 +5648,6 @@ var Comment = function (_AbstractCrudObject) {
       return get$1(Comment.prototype.__proto__ || Object.getPrototypeOf(Comment.prototype), 'deleteEdge', this).call(this, '/likes', params);
     }
   }, {
-    key: 'getLikes',
-    value: function getLikes(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(Profile, fields, params, fetchFirstPage, '/likes');
-    }
-  }, {
     key: 'createLike',
     value: function createLike(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -6254,13 +5798,6 @@ var InsightsResult = function (_AbstractCrudObject) {
       });
     }
   }, {
-    key: 'Metric',
-    get: function get() {
-      return Object.freeze({
-        messages_sent: 'messages_sent'
-      });
-    }
-  }, {
     key: 'DatePreset',
     get: function get() {
       return Object.freeze({
@@ -6309,90 +5846,6 @@ var InsightsResult = function (_AbstractCrudObject) {
  * 
  */
 /**
- * InstagramComment
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var InstagramComment = function (_AbstractCrudObject) {
-  inherits(InstagramComment, _AbstractCrudObject);
-
-  function InstagramComment() {
-    classCallCheck(this, InstagramComment);
-    return possibleConstructorReturn(this, (InstagramComment.__proto__ || Object.getPrototypeOf(InstagramComment)).apply(this, arguments));
-  }
-
-  createClass(InstagramComment, [{
-    key: 'getReplies',
-    value: function getReplies(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(InstagramComment, fields, params, fetchFirstPage, '/replies');
-    }
-  }, {
-    key: 'createReply',
-    value: function createReply(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/replies', fields, params, InstagramComment);
-    }
-
-    // $FlowFixMe : Support Generic Types
-
-  }, {
-    key: 'delete',
-    value: function _delete(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return get$1(InstagramComment.prototype.__proto__ || Object.getPrototypeOf(InstagramComment.prototype), 'delete', this).call(this, params);
-    }
-  }, {
-    key: 'get',
-    value: function get(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return this.read(fields, params);
-    }
-
-    // $FlowFixMe : Support Generic Types
-
-  }, {
-    key: 'update',
-    value: function update(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return get$1(InstagramComment.prototype.__proto__ || Object.getPrototypeOf(InstagramComment.prototype), 'update', this).call(this, params);
-    }
-  }], [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        comment_type: 'comment_type',
-        created_at: 'created_at',
-        id: 'id',
-        instagram_comment_id: 'instagram_comment_id',
-        instagram_user: 'instagram_user',
-        mentioned_instagram_users: 'mentioned_instagram_users',
-        message: 'message'
-      });
-    }
-  }]);
-  return InstagramComment;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
  * RTBDynamicPost
  * @extends AbstractCrudObject
  * @see {@link https://developers.facebook.com/docs/marketing-api/}
@@ -6413,14 +5866,6 @@ var RTBDynamicPost = function (_AbstractCrudObject) {
       var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
 
       return this.getEdge(Comment, fields, params, fetchFirstPage, '/comments');
-    }
-  }, {
-    key: 'getInstagramComments',
-    value: function getInstagramComments(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(InstagramComment, fields, params, fetchFirstPage, '/instagram_comments');
     }
   }, {
     key: 'getLikes',
@@ -6513,14 +5958,6 @@ var PagePost = function (_AbstractCrudObject) {
       return this.getEdge(RTBDynamicPost, fields, params, fetchFirstPage, '/dynamic_posts');
     }
   }, {
-    key: 'getEditActions',
-    value: function getEditActions(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(AbstractObject, fields, params, fetchFirstPage, '/edit_actions');
-    }
-  }, {
     key: 'getInsights',
     value: function getInsights(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -6582,14 +6019,6 @@ var PagePost = function (_AbstractCrudObject) {
 
       return this.getEdge(Profile, fields, params, fetchFirstPage, '/to');
     }
-  }, {
-    key: 'getWithTags',
-    value: function getWithTags(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(Profile, fields, params, fetchFirstPage, '/with_tags');
-    }
 
     // $FlowFixMe : Support Generic Types
 
@@ -6649,6 +6078,7 @@ var PagePost = function (_AbstractCrudObject) {
         is_eligible_for_promotion: 'is_eligible_for_promotion',
         is_expired: 'is_expired',
         is_hidden: 'is_hidden',
+        is_inline_created: 'is_inline_created',
         is_instagram_eligible: 'is_instagram_eligible',
         is_popular: 'is_popular',
         is_published: 'is_published',
@@ -6681,6 +6111,13 @@ var PagePost = function (_AbstractCrudObject) {
       });
     }
   }, {
+    key: 'With',
+    get: function get() {
+      return Object.freeze({
+        location: 'LOCATION'
+      });
+    }
+  }, {
     key: 'BackdatedTimeGranularity',
     get: function get() {
       return Object.freeze({
@@ -6690,79 +6127,6 @@ var PagePost = function (_AbstractCrudObject) {
         month: 'month',
         none: 'none',
         year: 'year'
-      });
-    }
-  }, {
-    key: 'CheckinEntryPoint',
-    get: function get() {
-      return Object.freeze({
-        branding_checkin: 'BRANDING_CHECKIN',
-        branding_other: 'BRANDING_OTHER',
-        branding_photo: 'BRANDING_PHOTO',
-        branding_status: 'BRANDING_STATUS'
-      });
-    }
-  }, {
-    key: 'Formatting',
-    get: function get() {
-      return Object.freeze({
-        markdown: 'MARKDOWN',
-        plaintext: 'PLAINTEXT'
-      });
-    }
-  }, {
-    key: 'PlaceAttachmentSetting',
-    get: function get() {
-      return Object.freeze({
-        value_1: '1',
-        value_2: '2'
-      });
-    }
-  }, {
-    key: 'PostSurfacesBlacklist',
-    get: function get() {
-      return Object.freeze({
-        value_1: '1',
-        value_2: '2',
-        value_3: '3',
-        value_4: '4',
-        value_5: '5'
-      });
-    }
-  }, {
-    key: 'PostingToRedspace',
-    get: function get() {
-      return Object.freeze({
-        disabled: 'disabled',
-        enabled: 'enabled'
-      });
-    }
-  }, {
-    key: 'TargetSurface',
-    get: function get() {
-      return Object.freeze({
-        story: 'STORY',
-        timeline: 'TIMELINE'
-      });
-    }
-  }, {
-    key: 'UnpublishedContentType',
-    get: function get() {
-      return Object.freeze({
-        ads_post: 'ADS_POST',
-        draft: 'DRAFT',
-        inline_created: 'INLINE_CREATED',
-        published: 'PUBLISHED',
-        reviewable_branded_content: 'REVIEWABLE_BRANDED_CONTENT',
-        scheduled: 'SCHEDULED',
-        scheduled_recurring: 'SCHEDULED_RECURRING'
-      });
-    }
-  }, {
-    key: 'With',
-    get: function get() {
-      return Object.freeze({
-        location: 'LOCATION'
       });
     }
   }, {
@@ -6784,6 +6148,642 @@ var PagePost = function (_AbstractCrudObject) {
     }
   }]);
   return PagePost;
+}(AbstractCrudObject);
+
+/**
+ * Copyright (c) 2017-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ * 
+ */
+/**
+ * PageCallToAction
+ * @extends AbstractCrudObject
+ * @see {@link https://developers.facebook.com/docs/marketing-api/}
+ */
+
+var PageCallToAction = function (_AbstractCrudObject) {
+  inherits(PageCallToAction, _AbstractCrudObject);
+
+  function PageCallToAction() {
+    classCallCheck(this, PageCallToAction);
+    return possibleConstructorReturn(this, (PageCallToAction.__proto__ || Object.getPrototypeOf(PageCallToAction)).apply(this, arguments));
+  }
+
+  createClass(PageCallToAction, [{
+    key: 'delete',
+
+
+    // $FlowFixMe : Support Generic Types
+    value: function _delete(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      // $FlowFixMe : Support Generic Types
+      return get$1(PageCallToAction.prototype.__proto__ || Object.getPrototypeOf(PageCallToAction.prototype), 'delete', this).call(this, params);
+    }
+  }, {
+    key: 'get',
+    value: function get(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      // $FlowFixMe : Support Generic Types
+      return this.read(fields, params);
+    }
+
+    // $FlowFixMe : Support Generic Types
+
+  }, {
+    key: 'update',
+    value: function update(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      // $FlowFixMe : Support Generic Types
+      return get$1(PageCallToAction.prototype.__proto__ || Object.getPrototypeOf(PageCallToAction.prototype), 'update', this).call(this, params);
+    }
+  }], [{
+    key: 'Fields',
+    get: function get() {
+      return Object.freeze({
+        android_app: 'android_app',
+        android_deeplink: 'android_deeplink',
+        android_destination_type: 'android_destination_type',
+        android_package_name: 'android_package_name',
+        android_url: 'android_url',
+        created_time: 'created_time',
+        email_address: 'email_address',
+        from: 'from',
+        id: 'id',
+        intl_number_with_plus: 'intl_number_with_plus',
+        iphone_app: 'iphone_app',
+        iphone_deeplink: 'iphone_deeplink',
+        iphone_destination_type: 'iphone_destination_type',
+        iphone_url: 'iphone_url',
+        status: 'status',
+        type: 'type',
+        updated_time: 'updated_time',
+        web_destination_type: 'web_destination_type',
+        web_url: 'web_url'
+      });
+    }
+  }, {
+    key: 'AndroidDestinationType',
+    get: function get() {
+      return Object.freeze({
+        app_deeplink: 'APP_DEEPLINK',
+        become_a_volunteer: 'BECOME_A_VOLUNTEER',
+        email: 'EMAIL',
+        facebook_app: 'FACEBOOK_APP',
+        messenger: 'MESSENGER',
+        mini_shop: 'MINI_SHOP',
+        none: 'NONE',
+        phone_call: 'PHONE_CALL',
+        shop_on_facebook: 'SHOP_ON_FACEBOOK',
+        website: 'WEBSITE'
+      });
+    }
+  }, {
+    key: 'IphoneDestinationType',
+    get: function get() {
+      return Object.freeze({
+        app_deeplink: 'APP_DEEPLINK',
+        become_a_volunteer: 'BECOME_A_VOLUNTEER',
+        email: 'EMAIL',
+        facebook_app: 'FACEBOOK_APP',
+        messenger: 'MESSENGER',
+        mini_shop: 'MINI_SHOP',
+        none: 'NONE',
+        phone_call: 'PHONE_CALL',
+        shop_on_facebook: 'SHOP_ON_FACEBOOK',
+        website: 'WEBSITE'
+      });
+    }
+  }, {
+    key: 'Type',
+    get: function get() {
+      return Object.freeze({
+        become_a_volunteer: 'BECOME_A_VOLUNTEER',
+        book_appointment: 'BOOK_APPOINTMENT',
+        book_now: 'BOOK_NOW',
+        buy_tickets: 'BUY_TICKETS',
+        call_now: 'CALL_NOW',
+        charity_donate: 'CHARITY_DONATE',
+        contact_us: 'CONTACT_US',
+        donate_now: 'DONATE_NOW',
+        email: 'EMAIL',
+        get_directions: 'GET_DIRECTIONS',
+        get_offer: 'GET_OFFER',
+        get_offer_view: 'GET_OFFER_VIEW',
+        interested: 'INTERESTED',
+        learn_more: 'LEARN_MORE',
+        listen: 'LISTEN',
+        local_dev_platform: 'LOCAL_DEV_PLATFORM',
+        message: 'MESSAGE',
+        open_app: 'OPEN_APP',
+        play_music: 'PLAY_MUSIC',
+        play_now: 'PLAY_NOW',
+        purchase_gift_cards: 'PURCHASE_GIFT_CARDS',
+        request_appointment: 'REQUEST_APPOINTMENT',
+        request_quote: 'REQUEST_QUOTE',
+        shop_now: 'SHOP_NOW',
+        shop_on_facebook: 'SHOP_ON_FACEBOOK',
+        sign_up: 'SIGN_UP',
+        view_shop: 'VIEW_SHOP',
+        visit_group: 'VISIT_GROUP',
+        watch_now: 'WATCH_NOW',
+        woodhenge_support: 'WOODHENGE_SUPPORT'
+      });
+    }
+  }, {
+    key: 'WebDestinationType',
+    get: function get() {
+      return Object.freeze({
+        become_a_volunteer: 'BECOME_A_VOLUNTEER',
+        become_supporter: 'BECOME_SUPPORTER',
+        email: 'EMAIL',
+        messenger: 'MESSENGER',
+        none: 'NONE',
+        shop_on_facebook: 'SHOP_ON_FACEBOOK',
+        website: 'WEBSITE'
+      });
+    }
+  }]);
+  return PageCallToAction;
+}(AbstractCrudObject);
+
+/**
+ * Copyright (c) 2017-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ * 
+ */
+/**
+ * CanvasBodyElement
+ * @extends AbstractCrudObject
+ * @see {@link https://developers.facebook.com/docs/marketing-api/}
+ */
+
+var CanvasBodyElement = function (_AbstractCrudObject) {
+  inherits(CanvasBodyElement, _AbstractCrudObject);
+
+  function CanvasBodyElement() {
+    classCallCheck(this, CanvasBodyElement);
+    return possibleConstructorReturn(this, (CanvasBodyElement.__proto__ || Object.getPrototypeOf(CanvasBodyElement)).apply(this, arguments));
+  }
+
+  createClass(CanvasBodyElement, null, [{
+    key: 'Fields',
+    get: function get() {
+      return Object.freeze({
+        element: 'element'
+      });
+    }
+  }]);
+  return CanvasBodyElement;
+}(AbstractCrudObject);
+
+/**
+ * Copyright (c) 2017-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ * 
+ */
+/**
+ * Canvas
+ * @extends AbstractCrudObject
+ * @see {@link https://developers.facebook.com/docs/marketing-api/}
+ */
+
+var Canvas = function (_AbstractCrudObject) {
+  inherits(Canvas, _AbstractCrudObject);
+
+  function Canvas() {
+    classCallCheck(this, Canvas);
+    return possibleConstructorReturn(this, (Canvas.__proto__ || Object.getPrototypeOf(Canvas)).apply(this, arguments));
+  }
+
+  createClass(Canvas, [{
+    key: 'createDuplicateCanva',
+    value: function createDuplicateCanva(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      return this.createEdge('/duplicate_canvas', fields, params, Canvas);
+    }
+  }, {
+    key: 'createPreviewNotification',
+    value: function createPreviewNotification(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      return this.createEdge('/preview_notifications', fields, params, Canvas);
+    }
+
+    // $FlowFixMe : Support Generic Types
+
+  }, {
+    key: 'delete',
+    value: function _delete(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      // $FlowFixMe : Support Generic Types
+      return get$1(Canvas.prototype.__proto__ || Object.getPrototypeOf(Canvas.prototype), 'delete', this).call(this, params);
+    }
+  }, {
+    key: 'get',
+    value: function get(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      // $FlowFixMe : Support Generic Types
+      return this.read(fields, params);
+    }
+
+    // $FlowFixMe : Support Generic Types
+
+  }, {
+    key: 'update',
+    value: function update(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      // $FlowFixMe : Support Generic Types
+      return get$1(Canvas.prototype.__proto__ || Object.getPrototypeOf(Canvas.prototype), 'update', this).call(this, params);
+    }
+  }], [{
+    key: 'Fields',
+    get: function get() {
+      return Object.freeze({
+        background_color: 'background_color',
+        body_elements: 'body_elements',
+        canvas_link: 'canvas_link',
+        id: 'id',
+        is_hidden: 'is_hidden',
+        is_published: 'is_published',
+        last_editor: 'last_editor',
+        name: 'name',
+        owner: 'owner',
+        update_time: 'update_time'
+      });
+    }
+  }]);
+  return Canvas;
+}(AbstractCrudObject);
+
+/**
+ * Copyright (c) 2017-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ * 
+ */
+/**
+ * URL
+ * @extends AbstractCrudObject
+ * @see {@link https://developers.facebook.com/docs/marketing-api/}
+ */
+
+var URL = function (_AbstractCrudObject) {
+  inherits(URL, _AbstractCrudObject);
+
+  function URL() {
+    classCallCheck(this, URL);
+    return possibleConstructorReturn(this, (URL.__proto__ || Object.getPrototypeOf(URL)).apply(this, arguments));
+  }
+
+  createClass(URL, [{
+    key: 'get',
+    value: function get(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      // $FlowFixMe : Support Generic Types
+      return this.read(fields, params);
+    }
+
+    // $FlowFixMe : Support Generic Types
+
+  }, {
+    key: 'update',
+    value: function update(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      // $FlowFixMe : Support Generic Types
+      return get$1(URL.prototype.__proto__ || Object.getPrototypeOf(URL.prototype), 'update', this).call(this, params);
+    }
+  }], [{
+    key: 'Fields',
+    get: function get() {
+      return Object.freeze({
+        development_instant_article: 'development_instant_article',
+        engagement: 'engagement',
+        id: 'id',
+        instant_article: 'instant_article',
+        og_object: 'og_object',
+        ownership_permissions: 'ownership_permissions',
+        scopes: 'scopes'
+      });
+    }
+  }, {
+    key: 'Scopes',
+    get: function get() {
+      return Object.freeze({
+        news_tab: 'NEWS_TAB',
+        news_tab_dev_env: 'NEWS_TAB_DEV_ENV'
+      });
+    }
+  }]);
+  return URL;
+}(AbstractCrudObject);
+
+/**
+ * Copyright (c) 2017-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ * 
+ */
+/**
+ * UnifiedThread
+ * @extends AbstractCrudObject
+ * @see {@link https://developers.facebook.com/docs/marketing-api/}
+ */
+
+var UnifiedThread = function (_AbstractCrudObject) {
+  inherits(UnifiedThread, _AbstractCrudObject);
+
+  function UnifiedThread() {
+    classCallCheck(this, UnifiedThread);
+    return possibleConstructorReturn(this, (UnifiedThread.__proto__ || Object.getPrototypeOf(UnifiedThread)).apply(this, arguments));
+  }
+
+  createClass(UnifiedThread, [{
+    key: 'getMessages',
+    value: function getMessages(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
+
+      return this.getEdge(AbstractObject, fields, params, fetchFirstPage, '/messages');
+    }
+  }, {
+    key: 'get',
+    value: function get(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      // $FlowFixMe : Support Generic Types
+      return this.read(fields, params);
+    }
+  }], [{
+    key: 'Fields',
+    get: function get() {
+      return Object.freeze({
+        can_reply: 'can_reply',
+        former_participants: 'former_participants',
+        id: 'id',
+        is_subscribed: 'is_subscribed',
+        link: 'link',
+        message_count: 'message_count',
+        name: 'name',
+        participants: 'participants',
+        scoped_thread_key: 'scoped_thread_key',
+        senders: 'senders',
+        snippet: 'snippet',
+        subject: 'subject',
+        unread_count: 'unread_count',
+        updated_time: 'updated_time',
+        wallpaper: 'wallpaper'
+      });
+    }
+  }]);
+  return UnifiedThread;
+}(AbstractCrudObject);
+
+/**
+ * Copyright (c) 2017-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ * 
+ */
+/**
+ * PageUserMessageThreadLabel
+ * @extends AbstractCrudObject
+ * @see {@link https://developers.facebook.com/docs/marketing-api/}
+ */
+
+var PageUserMessageThreadLabel = function (_AbstractCrudObject) {
+  inherits(PageUserMessageThreadLabel, _AbstractCrudObject);
+
+  function PageUserMessageThreadLabel() {
+    classCallCheck(this, PageUserMessageThreadLabel);
+    return possibleConstructorReturn(this, (PageUserMessageThreadLabel.__proto__ || Object.getPrototypeOf(PageUserMessageThreadLabel)).apply(this, arguments));
+  }
+
+  createClass(PageUserMessageThreadLabel, [{
+    key: 'deleteLabel',
+    value: function deleteLabel() {
+      var params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+
+      return get$1(PageUserMessageThreadLabel.prototype.__proto__ || Object.getPrototypeOf(PageUserMessageThreadLabel.prototype), 'deleteEdge', this).call(this, '/label', params);
+    }
+  }, {
+    key: 'createLabel',
+    value: function createLabel(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      return this.createEdge('/label', fields, params, PageUserMessageThreadLabel);
+    }
+
+    // $FlowFixMe : Support Generic Types
+
+  }, {
+    key: 'delete',
+    value: function _delete(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      // $FlowFixMe : Support Generic Types
+      return get$1(PageUserMessageThreadLabel.prototype.__proto__ || Object.getPrototypeOf(PageUserMessageThreadLabel.prototype), 'delete', this).call(this, params);
+    }
+  }, {
+    key: 'get',
+    value: function get(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      // $FlowFixMe : Support Generic Types
+      return this.read(fields, params);
+    }
+  }], [{
+    key: 'Fields',
+    get: function get() {
+      return Object.freeze({
+        id: 'id',
+        name: 'name'
+      });
+    }
+  }]);
+  return PageUserMessageThreadLabel;
+}(AbstractCrudObject);
+
+/**
+ * Copyright (c) 2017-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ * 
+ */
+/**
+ * CustomUserSettings
+ * @extends AbstractCrudObject
+ * @see {@link https://developers.facebook.com/docs/marketing-api/}
+ */
+
+var CustomUserSettings = function (_AbstractCrudObject) {
+  inherits(CustomUserSettings, _AbstractCrudObject);
+
+  function CustomUserSettings() {
+    classCallCheck(this, CustomUserSettings);
+    return possibleConstructorReturn(this, (CustomUserSettings.__proto__ || Object.getPrototypeOf(CustomUserSettings)).apply(this, arguments));
+  }
+
+  createClass(CustomUserSettings, null, [{
+    key: 'Fields',
+    get: function get() {
+      return Object.freeze({
+        page_level_persistent_menu: 'page_level_persistent_menu',
+        user_level_persistent_menu: 'user_level_persistent_menu'
+      });
+    }
+  }]);
+  return CustomUserSettings;
+}(AbstractCrudObject);
+
+/**
+ * Copyright (c) 2017-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ * 
+ */
+/**
+ * NullNode
+ * @extends AbstractCrudObject
+ * @see {@link https://developers.facebook.com/docs/marketing-api/}
+ */
+
+var NullNode = function (_AbstractCrudObject) {
+  inherits(NullNode, _AbstractCrudObject);
+
+  function NullNode() {
+    classCallCheck(this, NullNode);
+    return possibleConstructorReturn(this, (NullNode.__proto__ || Object.getPrototypeOf(NullNode)).apply(this, arguments));
+  }
+
+  createClass(NullNode, null, [{
+    key: 'Fields',
+    get: function get() {
+      return Object.freeze({});
+    }
+  }]);
+  return NullNode;
+}(AbstractCrudObject);
+
+/**
+ * Copyright (c) 2017-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ * 
+ */
+/**
+ * AppRequestFormerRecipient
+ * @extends AbstractCrudObject
+ * @see {@link https://developers.facebook.com/docs/marketing-api/}
+ */
+
+var AppRequestFormerRecipient = function (_AbstractCrudObject) {
+  inherits(AppRequestFormerRecipient, _AbstractCrudObject);
+
+  function AppRequestFormerRecipient() {
+    classCallCheck(this, AppRequestFormerRecipient);
+    return possibleConstructorReturn(this, (AppRequestFormerRecipient.__proto__ || Object.getPrototypeOf(AppRequestFormerRecipient)).apply(this, arguments));
+  }
+
+  createClass(AppRequestFormerRecipient, null, [{
+    key: 'Fields',
+    get: function get() {
+      return Object.freeze({
+        id: 'id',
+        recipient_id: 'recipient_id'
+      });
+    }
+  }]);
+  return AppRequestFormerRecipient;
+}(AbstractCrudObject);
+
+/**
+ * Copyright (c) 2017-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ * 
+ */
+/**
+ * AppRequest
+ * @extends AbstractCrudObject
+ * @see {@link https://developers.facebook.com/docs/marketing-api/}
+ */
+
+var AppRequest = function (_AbstractCrudObject) {
+  inherits(AppRequest, _AbstractCrudObject);
+
+  function AppRequest() {
+    classCallCheck(this, AppRequest);
+    return possibleConstructorReturn(this, (AppRequest.__proto__ || Object.getPrototypeOf(AppRequest)).apply(this, arguments));
+  }
+
+  createClass(AppRequest, [{
+    key: 'delete',
+
+
+    // $FlowFixMe : Support Generic Types
+    value: function _delete(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      // $FlowFixMe : Support Generic Types
+      return get$1(AppRequest.prototype.__proto__ || Object.getPrototypeOf(AppRequest.prototype), 'delete', this).call(this, params);
+    }
+  }, {
+    key: 'get',
+    value: function get(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      // $FlowFixMe : Support Generic Types
+      return this.read(fields, params);
+    }
+  }], [{
+    key: 'Fields',
+    get: function get() {
+      return Object.freeze({
+        action_type: 'action_type',
+        application: 'application',
+        created_time: 'created_time',
+        data: 'data',
+        from: 'from',
+        id: 'id',
+        message: 'message',
+        object: 'object',
+        to: 'to'
+      });
+    }
+  }]);
+  return AppRequest;
 }(AbstractCrudObject);
 
 /**
@@ -6820,7 +6820,6 @@ var AutomotiveModel = function (_AbstractCrudObject) {
     key: 'Fields',
     get: function get() {
       return Object.freeze({
-        applinks: 'applinks',
         automotive_model_id: 'automotive_model_id',
         availability: 'availability',
         body_style: 'body_style',
@@ -6850,165 +6849,6 @@ var AutomotiveModel = function (_AbstractCrudObject) {
     }
   }]);
   return AutomotiveModel;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
- * DynamicItemDisplayBundleFolder
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var DynamicItemDisplayBundleFolder = function (_AbstractCrudObject) {
-  inherits(DynamicItemDisplayBundleFolder, _AbstractCrudObject);
-
-  function DynamicItemDisplayBundleFolder() {
-    classCallCheck(this, DynamicItemDisplayBundleFolder);
-    return possibleConstructorReturn(this, (DynamicItemDisplayBundleFolder.__proto__ || Object.getPrototypeOf(DynamicItemDisplayBundleFolder)).apply(this, arguments));
-  }
-
-  createClass(DynamicItemDisplayBundleFolder, [{
-    key: 'deleteBundles',
-    value: function deleteBundles() {
-      var params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-
-      return get$1(DynamicItemDisplayBundleFolder.prototype.__proto__ || Object.getPrototypeOf(DynamicItemDisplayBundleFolder.prototype), 'deleteEdge', this).call(this, '/bundles', params);
-    }
-  }, {
-    key: 'createBundle',
-    value: function createBundle(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/bundles', fields, params, DynamicItemDisplayBundleFolder);
-    }
-
-    // $FlowFixMe : Support Generic Types
-
-  }, {
-    key: 'delete',
-    value: function _delete(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return get$1(DynamicItemDisplayBundleFolder.prototype.__proto__ || Object.getPrototypeOf(DynamicItemDisplayBundleFolder.prototype), 'delete', this).call(this, params);
-    }
-  }, {
-    key: 'get',
-    value: function get(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return this.read(fields, params);
-    }
-
-    // $FlowFixMe : Support Generic Types
-
-  }, {
-    key: 'update',
-    value: function update(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return get$1(DynamicItemDisplayBundleFolder.prototype.__proto__ || Object.getPrototypeOf(DynamicItemDisplayBundleFolder.prototype), 'update', this).call(this, params);
-    }
-  }], [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        categorization_criteria: 'categorization_criteria',
-        id: 'id',
-        name: 'name',
-        product_catalog: 'product_catalog',
-        product_set: 'product_set',
-        valid_labels: 'valid_labels'
-      });
-    }
-  }]);
-  return DynamicItemDisplayBundleFolder;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
- * DynamicItemDisplayBundle
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var DynamicItemDisplayBundle = function (_AbstractCrudObject) {
-  inherits(DynamicItemDisplayBundle, _AbstractCrudObject);
-
-  function DynamicItemDisplayBundle() {
-    classCallCheck(this, DynamicItemDisplayBundle);
-    return possibleConstructorReturn(this, (DynamicItemDisplayBundle.__proto__ || Object.getPrototypeOf(DynamicItemDisplayBundle)).apply(this, arguments));
-  }
-
-  createClass(DynamicItemDisplayBundle, [{
-    key: 'getBundleFolders',
-    value: function getBundleFolders(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(DynamicItemDisplayBundleFolder, fields, params, fetchFirstPage, '/bundle_folders');
-    }
-
-    // $FlowFixMe : Support Generic Types
-
-  }, {
-    key: 'delete',
-    value: function _delete(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return get$1(DynamicItemDisplayBundle.prototype.__proto__ || Object.getPrototypeOf(DynamicItemDisplayBundle.prototype), 'delete', this).call(this, params);
-    }
-  }, {
-    key: 'get',
-    value: function get(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return this.read(fields, params);
-    }
-
-    // $FlowFixMe : Support Generic Types
-
-  }, {
-    key: 'update',
-    value: function update(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return get$1(DynamicItemDisplayBundle.prototype.__proto__ || Object.getPrototypeOf(DynamicItemDisplayBundle.prototype), 'update', this).call(this, params);
-    }
-  }], [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        additional_urls: 'additional_urls',
-        description: 'description',
-        id: 'id',
-        name: 'name',
-        product_set: 'product_set',
-        text_tokens: 'text_tokens',
-        url: 'url'
-      });
-    }
-  }]);
-  return DynamicItemDisplayBundle;
 }(AbstractCrudObject);
 
 /**
@@ -7190,7 +7030,6 @@ var Destination = function (_AbstractCrudObject) {
     get: function get() {
       return Object.freeze({
         address: 'address',
-        applinks: 'applinks',
         currency: 'currency',
         description: 'description',
         destination_id: 'destination_id',
@@ -7376,7 +7215,6 @@ var Flight = function (_AbstractCrudObject) {
     key: 'Fields',
     get: function get() {
       return Object.freeze({
-        applinks: 'applinks',
         currency: 'currency',
         description: 'description',
         destination_airport: 'destination_airport',
@@ -7461,7 +7299,6 @@ var HomeListing = function (_AbstractCrudObject) {
         agent_fb_page_id: 'agent_fb_page_id',
         agent_name: 'agent_name',
         agent_phone: 'agent_phone',
-        applinks: 'applinks',
         area_size: 'area_size',
         area_unit: 'area_unit',
         availability: 'availability',
@@ -7645,7 +7482,6 @@ var HotelRoom = function (_AbstractCrudObject) {
     key: 'Fields',
     get: function get() {
       return Object.freeze({
-        applinks: 'applinks',
         base_price: 'base_price',
         currency: 'currency',
         description: 'description',
@@ -7727,8 +7563,8 @@ var Hotel = function (_AbstractCrudObject) {
     get: function get() {
       return Object.freeze({
         address: 'address',
-        applinks: 'applinks',
         brand: 'brand',
+        category: 'category',
         currency: 'currency',
         description: 'description',
         guest_ratings: 'guest_ratings',
@@ -7824,7 +7660,6 @@ var VehicleOffer = function (_AbstractCrudObject) {
         amount_percentage: 'amount_percentage',
         amount_price: 'amount_price',
         amount_qualifier: 'amount_qualifier',
-        applinks: 'applinks',
         body_style: 'body_style',
         cashback_currency: 'cashback_currency',
         cashback_price: 'cashback_price',
@@ -7837,6 +7672,8 @@ var VehicleOffer = function (_AbstractCrudObject) {
         end_time: 'end_time',
         id: 'id',
         images: 'images',
+        make: 'make',
+        model: 'model',
         offer_description: 'offer_description',
         offer_disclaimer: 'offer_disclaimer',
         offer_type: 'offer_type',
@@ -7903,7 +7740,6 @@ var Vehicle = function (_AbstractCrudObject) {
     get: function get() {
       return Object.freeze({
         address: 'address',
-        applinks: 'applinks',
         availability: 'availability',
         body_style: 'body_style',
         condition: 'condition',
@@ -8253,7 +8089,6 @@ var ProductItem = function (_AbstractCrudObject) {
         additional_image_urls: 'additional_image_urls',
         additional_variant_attributes: 'additional_variant_attributes',
         age_group: 'age_group',
-        applinks: 'applinks',
         availability: 'availability',
         brand: 'brand',
         capability_to_review_status: 'capability_to_review_status',
@@ -8677,6 +8512,101 @@ var ProductFeedRule = function (_AbstractCrudObject) {
  * 
  */
 /**
+ * ProductFeedSchedule
+ * @extends AbstractCrudObject
+ * @see {@link https://developers.facebook.com/docs/marketing-api/}
+ */
+
+var ProductFeedSchedule = function (_AbstractCrudObject) {
+  inherits(ProductFeedSchedule, _AbstractCrudObject);
+
+  function ProductFeedSchedule() {
+    classCallCheck(this, ProductFeedSchedule);
+    return possibleConstructorReturn(this, (ProductFeedSchedule.__proto__ || Object.getPrototypeOf(ProductFeedSchedule)).apply(this, arguments));
+  }
+
+  createClass(ProductFeedSchedule, [{
+    key: 'delete',
+
+
+    // $FlowFixMe : Support Generic Types
+    value: function _delete(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      // $FlowFixMe : Support Generic Types
+      return get$1(ProductFeedSchedule.prototype.__proto__ || Object.getPrototypeOf(ProductFeedSchedule.prototype), 'delete', this).call(this, params);
+    }
+  }, {
+    key: 'get',
+    value: function get(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      // $FlowFixMe : Support Generic Types
+      return this.read(fields, params);
+    }
+
+    // $FlowFixMe : Support Generic Types
+
+  }, {
+    key: 'update',
+    value: function update(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      // $FlowFixMe : Support Generic Types
+      return get$1(ProductFeedSchedule.prototype.__proto__ || Object.getPrototypeOf(ProductFeedSchedule.prototype), 'update', this).call(this, params);
+    }
+  }], [{
+    key: 'Fields',
+    get: function get() {
+      return Object.freeze({
+        day_of_month: 'day_of_month',
+        day_of_week: 'day_of_week',
+        hour: 'hour',
+        id: 'id',
+        interval: 'interval',
+        interval_count: 'interval_count',
+        minute: 'minute',
+        timezone: 'timezone',
+        url: 'url',
+        username: 'username'
+      });
+    }
+  }, {
+    key: 'DayOfWeek',
+    get: function get() {
+      return Object.freeze({
+        friday: 'FRIDAY',
+        monday: 'MONDAY',
+        saturday: 'SATURDAY',
+        sunday: 'SUNDAY',
+        thursday: 'THURSDAY',
+        tuesday: 'TUESDAY',
+        wednesday: 'WEDNESDAY'
+      });
+    }
+  }, {
+    key: 'Interval',
+    get: function get() {
+      return Object.freeze({
+        daily: 'DAILY',
+        hourly: 'HOURLY',
+        monthly: 'MONTHLY',
+        weekly: 'WEEKLY'
+      });
+    }
+  }]);
+  return ProductFeedSchedule;
+}(AbstractCrudObject);
+
+/**
+ * Copyright (c) 2017-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ * 
+ */
+/**
  * ProductFeedUploadErrorSample
  * @extends AbstractCrudObject
  * @see {@link https://developers.facebook.com/docs/marketing-api/}
@@ -8894,6 +8824,7 @@ var ProductFeedUpload = function (_AbstractCrudObject) {
     key: 'InputMethod',
     get: function get() {
       return Object.freeze({
+        google_sheets_fetch: 'Google Sheets Fetch',
         manual_upload: 'Manual Upload',
         reupload_last_file: 'Reupload Last File',
         server_fetch: 'Server Fetch',
@@ -8988,6 +8919,21 @@ var ProductFeed = function (_AbstractCrudObject) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
       return this.createEdge('/rules', fields, params, ProductFeedRule);
+    }
+  }, {
+    key: 'getUploadSchedules',
+    value: function getUploadSchedules(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
+
+      return this.getEdge(ProductFeedSchedule, fields, params, fetchFirstPage, '/upload_schedules');
+    }
+  }, {
+    key: 'createUploadSchedule',
+    value: function createUploadSchedule(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      return this.createEdge('/upload_schedules', fields, params, ProductFeed);
     }
   }, {
     key: 'getUploads',
@@ -9118,6 +9064,7 @@ var ProductFeed = function (_AbstractCrudObject) {
         local_inventory: 'LOCAL_INVENTORY',
         market: 'MARKET',
         media_title: 'MEDIA_TITLE',
+        offer: 'OFFER',
         products: 'PRODUCTS',
         vehicles: 'VEHICLES',
         vehicle_offer: 'VEHICLE_OFFER'
@@ -9337,20 +9284,6 @@ var ProductCatalog = function (_AbstractCrudObject) {
       return this.createEdge('/batch', fields, params, ProductCatalog);
     }
   }, {
-    key: 'createBundleFolder',
-    value: function createBundleFolder(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/bundle_folders', fields, params, DynamicItemDisplayBundleFolder);
-    }
-  }, {
-    key: 'createBundle',
-    value: function createBundle(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/bundles', fields, params, DynamicItemDisplayBundle);
-    }
-  }, {
     key: 'getCategories',
     value: function getCategories(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -9548,13 +9481,6 @@ var ProductCatalog = function (_AbstractCrudObject) {
       return this.getEdge(ProductCatalogProductSetsBatch, fields, params, fetchFirstPage, '/product_sets_batch');
     }
   }, {
-    key: 'createProductSetsBatch',
-    value: function createProductSetsBatch(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/product_sets_batch', fields, params, ProductCatalog);
-    }
-  }, {
     key: 'getProducts',
     value: function getProducts(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -9568,13 +9494,6 @@ var ProductCatalog = function (_AbstractCrudObject) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
       return this.createEdge('/products', fields, params, ProductItem);
-    }
-  }, {
-    key: 'createStoreProductItemsBatch',
-    value: function createStoreProductItemsBatch(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/store_product_items_batch', fields, params, ProductCatalog);
     }
   }, {
     key: 'getVehicleOffers',
@@ -9640,6 +9559,7 @@ var ProductCatalog = function (_AbstractCrudObject) {
         fallback_image_url: 'fallback_image_url',
         feed_count: 'feed_count',
         id: 'id',
+        is_catalog_segment: 'is_catalog_segment',
         name: 'name',
         product_count: 'product_count',
         store_catalog_settings: 'store_catalog_settings',
@@ -9656,6 +9576,8 @@ var ProductCatalog = function (_AbstractCrudObject) {
         flights: 'flights',
         home_listings: 'home_listings',
         hotels: 'hotels',
+        jobs: 'jobs',
+        offer_items: 'offer_items',
         offline_commerce: 'offline_commerce',
         ticketed_experiences: 'ticketed_experiences',
         transactable_items: 'transactable_items',
@@ -9695,746 +9617,6 @@ var ProductCatalog = function (_AbstractCrudObject) {
     }
   }]);
   return ProductCatalog;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
- * BusinessProject
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var BusinessProject = function (_AbstractCrudObject) {
-  inherits(BusinessProject, _AbstractCrudObject);
-
-  function BusinessProject() {
-    classCallCheck(this, BusinessProject);
-    return possibleConstructorReturn(this, (BusinessProject.__proto__ || Object.getPrototypeOf(BusinessProject)).apply(this, arguments));
-  }
-
-  createClass(BusinessProject, [{
-    key: 'deleteAdAccounts',
-    value: function deleteAdAccounts() {
-      var params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-
-      return get$1(BusinessProject.prototype.__proto__ || Object.getPrototypeOf(BusinessProject.prototype), 'deleteEdge', this).call(this, '/adaccounts', params);
-    }
-  }, {
-    key: 'getAdAccounts',
-    value: function getAdAccounts(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(AdAccount, fields, params, fetchFirstPage, '/adaccounts');
-    }
-  }, {
-    key: 'createAdAccount',
-    value: function createAdAccount(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/adaccounts', fields, params, BusinessProject);
-    }
-  }, {
-    key: 'deleteApps',
-    value: function deleteApps() {
-      var params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-
-      return get$1(BusinessProject.prototype.__proto__ || Object.getPrototypeOf(BusinessProject.prototype), 'deleteEdge', this).call(this, '/apps', params);
-    }
-  }, {
-    key: 'getApps',
-    value: function getApps(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(Application, fields, params, fetchFirstPage, '/apps');
-    }
-  }, {
-    key: 'createApp',
-    value: function createApp(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/apps', fields, params, BusinessProject);
-    }
-  }, {
-    key: 'deleteAssets',
-    value: function deleteAssets() {
-      var params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-
-      return get$1(BusinessProject.prototype.__proto__ || Object.getPrototypeOf(BusinessProject.prototype), 'deleteEdge', this).call(this, '/assets', params);
-    }
-  }, {
-    key: 'createAsset',
-    value: function createAsset(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/assets', fields, params, BusinessProject);
-    }
-  }, {
-    key: 'deletePages',
-    value: function deletePages() {
-      var params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-
-      return get$1(BusinessProject.prototype.__proto__ || Object.getPrototypeOf(BusinessProject.prototype), 'deleteEdge', this).call(this, '/pages', params);
-    }
-  }, {
-    key: 'getPages',
-    value: function getPages(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(Page, fields, params, fetchFirstPage, '/pages');
-    }
-  }, {
-    key: 'createPage',
-    value: function createPage(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/pages', fields, params, BusinessProject);
-    }
-  }, {
-    key: 'deleteProductCatalogs',
-    value: function deleteProductCatalogs() {
-      var params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-
-      return get$1(BusinessProject.prototype.__proto__ || Object.getPrototypeOf(BusinessProject.prototype), 'deleteEdge', this).call(this, '/product_catalogs', params);
-    }
-  }, {
-    key: 'getProductCatalogs',
-    value: function getProductCatalogs(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(ProductCatalog, fields, params, fetchFirstPage, '/product_catalogs');
-    }
-  }, {
-    key: 'createProductCatalog',
-    value: function createProductCatalog(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/product_catalogs', fields, params, BusinessProject);
-    }
-
-    // $FlowFixMe : Support Generic Types
-
-  }, {
-    key: 'delete',
-    value: function _delete(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return get$1(BusinessProject.prototype.__proto__ || Object.getPrototypeOf(BusinessProject.prototype), 'delete', this).call(this, params);
-    }
-  }, {
-    key: 'get',
-    value: function get(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return this.read(fields, params);
-    }
-
-    // $FlowFixMe : Support Generic Types
-
-  }, {
-    key: 'update',
-    value: function update(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return get$1(BusinessProject.prototype.__proto__ || Object.getPrototypeOf(BusinessProject.prototype), 'update', this).call(this, params);
-    }
-  }], [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        business: 'business',
-        created_time: 'created_time',
-        creator: 'creator',
-        id: 'id',
-        name: 'name'
-      });
-    }
-  }]);
-  return BusinessProject;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
- * PageCallToAction
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var PageCallToAction = function (_AbstractCrudObject) {
-  inherits(PageCallToAction, _AbstractCrudObject);
-
-  function PageCallToAction() {
-    classCallCheck(this, PageCallToAction);
-    return possibleConstructorReturn(this, (PageCallToAction.__proto__ || Object.getPrototypeOf(PageCallToAction)).apply(this, arguments));
-  }
-
-  createClass(PageCallToAction, [{
-    key: 'delete',
-
-
-    // $FlowFixMe : Support Generic Types
-    value: function _delete(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return get$1(PageCallToAction.prototype.__proto__ || Object.getPrototypeOf(PageCallToAction.prototype), 'delete', this).call(this, params);
-    }
-  }, {
-    key: 'get',
-    value: function get(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return this.read(fields, params);
-    }
-
-    // $FlowFixMe : Support Generic Types
-
-  }, {
-    key: 'update',
-    value: function update(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return get$1(PageCallToAction.prototype.__proto__ || Object.getPrototypeOf(PageCallToAction.prototype), 'update', this).call(this, params);
-    }
-  }], [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        android_app: 'android_app',
-        android_deeplink: 'android_deeplink',
-        android_destination_type: 'android_destination_type',
-        android_package_name: 'android_package_name',
-        android_url: 'android_url',
-        created_time: 'created_time',
-        email_address: 'email_address',
-        from: 'from',
-        id: 'id',
-        intl_number_with_plus: 'intl_number_with_plus',
-        iphone_app: 'iphone_app',
-        iphone_deeplink: 'iphone_deeplink',
-        iphone_destination_type: 'iphone_destination_type',
-        iphone_url: 'iphone_url',
-        status: 'status',
-        type: 'type',
-        updated_time: 'updated_time',
-        web_destination_type: 'web_destination_type',
-        web_url: 'web_url'
-      });
-    }
-  }, {
-    key: 'AndroidDestinationType',
-    get: function get() {
-      return Object.freeze({
-        app_deeplink: 'APP_DEEPLINK',
-        email: 'EMAIL',
-        facebook_app: 'FACEBOOK_APP',
-        messenger: 'MESSENGER',
-        none: 'NONE',
-        phone_call: 'PHONE_CALL',
-        shop_on_facebook: 'SHOP_ON_FACEBOOK',
-        website: 'WEBSITE'
-      });
-    }
-  }, {
-    key: 'IphoneDestinationType',
-    get: function get() {
-      return Object.freeze({
-        app_deeplink: 'APP_DEEPLINK',
-        email: 'EMAIL',
-        facebook_app: 'FACEBOOK_APP',
-        messenger: 'MESSENGER',
-        none: 'NONE',
-        phone_call: 'PHONE_CALL',
-        shop_on_facebook: 'SHOP_ON_FACEBOOK',
-        website: 'WEBSITE'
-      });
-    }
-  }, {
-    key: 'Type',
-    get: function get() {
-      return Object.freeze({
-        book_appointment: 'BOOK_APPOINTMENT',
-        book_now: 'BOOK_NOW',
-        buy_tickets: 'BUY_TICKETS',
-        call_now: 'CALL_NOW',
-        charity_donate: 'CHARITY_DONATE',
-        contact_us: 'CONTACT_US',
-        donate_now: 'DONATE_NOW',
-        email: 'EMAIL',
-        get_directions: 'GET_DIRECTIONS',
-        get_offer: 'GET_OFFER',
-        get_offer_view: 'GET_OFFER_VIEW',
-        interested: 'INTERESTED',
-        learn_more: 'LEARN_MORE',
-        listen: 'LISTEN',
-        local_dev_platform: 'LOCAL_DEV_PLATFORM',
-        message: 'MESSAGE',
-        open_app: 'OPEN_APP',
-        play_music: 'PLAY_MUSIC',
-        play_now: 'PLAY_NOW',
-        request_appointment: 'REQUEST_APPOINTMENT',
-        request_quote: 'REQUEST_QUOTE',
-        shop_now: 'SHOP_NOW',
-        shop_on_facebook: 'SHOP_ON_FACEBOOK',
-        sign_up: 'SIGN_UP',
-        visit_group: 'VISIT_GROUP',
-        watch_now: 'WATCH_NOW',
-        woodhenge_support: 'WOODHENGE_SUPPORT'
-      });
-    }
-  }, {
-    key: 'WebDestinationType',
-    get: function get() {
-      return Object.freeze({
-        become_supporter: 'BECOME_SUPPORTER',
-        email: 'EMAIL',
-        messenger: 'MESSENGER',
-        none: 'NONE',
-        shop_on_facebook: 'SHOP_ON_FACEBOOK',
-        website: 'WEBSITE'
-      });
-    }
-  }]);
-  return PageCallToAction;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
- * CanvasBodyElement
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var CanvasBodyElement = function (_AbstractCrudObject) {
-  inherits(CanvasBodyElement, _AbstractCrudObject);
-
-  function CanvasBodyElement() {
-    classCallCheck(this, CanvasBodyElement);
-    return possibleConstructorReturn(this, (CanvasBodyElement.__proto__ || Object.getPrototypeOf(CanvasBodyElement)).apply(this, arguments));
-  }
-
-  createClass(CanvasBodyElement, null, [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        element: 'element'
-      });
-    }
-  }]);
-  return CanvasBodyElement;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
- * Canvas
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var Canvas = function (_AbstractCrudObject) {
-  inherits(Canvas, _AbstractCrudObject);
-
-  function Canvas() {
-    classCallCheck(this, Canvas);
-    return possibleConstructorReturn(this, (Canvas.__proto__ || Object.getPrototypeOf(Canvas)).apply(this, arguments));
-  }
-
-  createClass(Canvas, [{
-    key: 'createDuplicateCanva',
-    value: function createDuplicateCanva(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/duplicate_canvas', fields, params, Canvas);
-    }
-  }, {
-    key: 'createPreviewNotification',
-    value: function createPreviewNotification(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/preview_notifications', fields, params, Canvas);
-    }
-
-    // $FlowFixMe : Support Generic Types
-
-  }, {
-    key: 'delete',
-    value: function _delete(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return get$1(Canvas.prototype.__proto__ || Object.getPrototypeOf(Canvas.prototype), 'delete', this).call(this, params);
-    }
-  }, {
-    key: 'get',
-    value: function get(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return this.read(fields, params);
-    }
-
-    // $FlowFixMe : Support Generic Types
-
-  }, {
-    key: 'update',
-    value: function update(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return get$1(Canvas.prototype.__proto__ || Object.getPrototypeOf(Canvas.prototype), 'update', this).call(this, params);
-    }
-  }], [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        background_color: 'background_color',
-        body_elements: 'body_elements',
-        canvas_link: 'canvas_link',
-        id: 'id',
-        is_hidden: 'is_hidden',
-        is_published: 'is_published',
-        last_editor: 'last_editor',
-        name: 'name',
-        owner: 'owner',
-        update_time: 'update_time'
-      });
-    }
-  }]);
-  return Canvas;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
- * URL
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var URL = function (_AbstractCrudObject) {
-  inherits(URL, _AbstractCrudObject);
-
-  function URL() {
-    classCallCheck(this, URL);
-    return possibleConstructorReturn(this, (URL.__proto__ || Object.getPrototypeOf(URL)).apply(this, arguments));
-  }
-
-  createClass(URL, [{
-    key: 'get',
-    value: function get(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return this.read(fields, params);
-    }
-
-    // $FlowFixMe : Support Generic Types
-
-  }, {
-    key: 'update',
-    value: function update(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return get$1(URL.prototype.__proto__ || Object.getPrototypeOf(URL.prototype), 'update', this).call(this, params);
-    }
-  }], [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        app_links: 'app_links',
-        development_instant_article: 'development_instant_article',
-        engagement: 'engagement',
-        id: 'id',
-        instant_article: 'instant_article',
-        og_object: 'og_object',
-        ownership_permissions: 'ownership_permissions',
-        scopes: 'scopes'
-      });
-    }
-  }, {
-    key: 'Scopes',
-    get: function get() {
-      return Object.freeze({
-        news_tab: 'NEWS_TAB',
-        news_tab_dev_env: 'NEWS_TAB_DEV_ENV'
-      });
-    }
-  }]);
-  return URL;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
- * UnifiedThread
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var UnifiedThread = function (_AbstractCrudObject) {
-  inherits(UnifiedThread, _AbstractCrudObject);
-
-  function UnifiedThread() {
-    classCallCheck(this, UnifiedThread);
-    return possibleConstructorReturn(this, (UnifiedThread.__proto__ || Object.getPrototypeOf(UnifiedThread)).apply(this, arguments));
-  }
-
-  createClass(UnifiedThread, [{
-    key: 'getMessages',
-    value: function getMessages(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(AbstractObject, fields, params, fetchFirstPage, '/messages');
-    }
-  }, {
-    key: 'createMessage',
-    value: function createMessage(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/messages', fields, params);
-    }
-  }, {
-    key: 'get',
-    value: function get(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return this.read(fields, params);
-    }
-  }], [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        can_reply: 'can_reply',
-        former_participants: 'former_participants',
-        id: 'id',
-        is_subscribed: 'is_subscribed',
-        link: 'link',
-        message_count: 'message_count',
-        name: 'name',
-        participants: 'participants',
-        scoped_thread_key: 'scoped_thread_key',
-        senders: 'senders',
-        snippet: 'snippet',
-        subject: 'subject',
-        unread_count: 'unread_count',
-        updated_time: 'updated_time',
-        wallpaper: 'wallpaper'
-      });
-    }
-  }]);
-  return UnifiedThread;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
- * PageUserMessageThreadLabel
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var PageUserMessageThreadLabel = function (_AbstractCrudObject) {
-  inherits(PageUserMessageThreadLabel, _AbstractCrudObject);
-
-  function PageUserMessageThreadLabel() {
-    classCallCheck(this, PageUserMessageThreadLabel);
-    return possibleConstructorReturn(this, (PageUserMessageThreadLabel.__proto__ || Object.getPrototypeOf(PageUserMessageThreadLabel)).apply(this, arguments));
-  }
-
-  createClass(PageUserMessageThreadLabel, [{
-    key: 'deleteLabel',
-    value: function deleteLabel() {
-      var params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-
-      return get$1(PageUserMessageThreadLabel.prototype.__proto__ || Object.getPrototypeOf(PageUserMessageThreadLabel.prototype), 'deleteEdge', this).call(this, '/label', params);
-    }
-  }, {
-    key: 'createLabel',
-    value: function createLabel(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/label', fields, params, PageUserMessageThreadLabel);
-    }
-
-    // $FlowFixMe : Support Generic Types
-
-  }, {
-    key: 'delete',
-    value: function _delete(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return get$1(PageUserMessageThreadLabel.prototype.__proto__ || Object.getPrototypeOf(PageUserMessageThreadLabel.prototype), 'delete', this).call(this, params);
-    }
-  }, {
-    key: 'get',
-    value: function get(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return this.read(fields, params);
-    }
-  }], [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        id: 'id',
-        name: 'name'
-      });
-    }
-  }]);
-  return PageUserMessageThreadLabel;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
- * AppRequestFormerRecipient
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var AppRequestFormerRecipient = function (_AbstractCrudObject) {
-  inherits(AppRequestFormerRecipient, _AbstractCrudObject);
-
-  function AppRequestFormerRecipient() {
-    classCallCheck(this, AppRequestFormerRecipient);
-    return possibleConstructorReturn(this, (AppRequestFormerRecipient.__proto__ || Object.getPrototypeOf(AppRequestFormerRecipient)).apply(this, arguments));
-  }
-
-  createClass(AppRequestFormerRecipient, null, [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        id: 'id',
-        recipient_id: 'recipient_id'
-      });
-    }
-  }]);
-  return AppRequestFormerRecipient;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
- * AppRequest
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var AppRequest = function (_AbstractCrudObject) {
-  inherits(AppRequest, _AbstractCrudObject);
-
-  function AppRequest() {
-    classCallCheck(this, AppRequest);
-    return possibleConstructorReturn(this, (AppRequest.__proto__ || Object.getPrototypeOf(AppRequest)).apply(this, arguments));
-  }
-
-  createClass(AppRequest, [{
-    key: 'delete',
-
-
-    // $FlowFixMe : Support Generic Types
-    value: function _delete(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return get$1(AppRequest.prototype.__proto__ || Object.getPrototypeOf(AppRequest.prototype), 'delete', this).call(this, params);
-    }
-  }, {
-    key: 'get',
-    value: function get(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return this.read(fields, params);
-    }
-  }], [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        action_type: 'action_type',
-        application: 'application',
-        created_time: 'created_time',
-        data: 'data',
-        from: 'from',
-        id: 'id',
-        message: 'message',
-        object: 'object',
-        to: 'to'
-      });
-    }
-  }]);
-  return AppRequest;
 }(AbstractCrudObject);
 
 /**
@@ -10553,49 +9735,6 @@ var BusinessUser = function (_AbstractCrudObject) {
     }
   }]);
   return BusinessUser;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
- * Domain
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var Domain = function (_AbstractCrudObject) {
-  inherits(Domain, _AbstractCrudObject);
-
-  function Domain() {
-    classCallCheck(this, Domain);
-    return possibleConstructorReturn(this, (Domain.__proto__ || Object.getPrototypeOf(Domain)).apply(this, arguments));
-  }
-
-  createClass(Domain, [{
-    key: 'get',
-    value: function get(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return this.read(fields, params);
-    }
-  }], [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        id: 'id',
-        name: 'name',
-        url: 'url'
-      });
-    }
-  }]);
-  return Domain;
 }(AbstractCrudObject);
 
 /**
@@ -10925,39 +10064,6 @@ var RequestHistory = function (_AbstractCrudObject) {
  * 
  */
 /**
- * PlatformSessionKey
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var PlatformSessionKey = function (_AbstractCrudObject) {
-  inherits(PlatformSessionKey, _AbstractCrudObject);
-
-  function PlatformSessionKey() {
-    classCallCheck(this, PlatformSessionKey);
-    return possibleConstructorReturn(this, (PlatformSessionKey.__proto__ || Object.getPrototypeOf(PlatformSessionKey)).apply(this, arguments));
-  }
-
-  createClass(PlatformSessionKey, null, [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        id: 'id'
-      });
-    }
-  }]);
-  return PlatformSessionKey;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
  * UserTaggableFriend
  * @extends AbstractCrudObject
  * @see {@link https://developers.facebook.com/docs/marketing-api/}
@@ -11044,13 +10150,6 @@ var User = function (_AbstractCrudObject) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
       return this.createEdge('/accounts', fields, params, Page);
-    }
-  }, {
-    key: 'createAchievement',
-    value: function createAchievement(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/achievements', fields, params);
     }
   }, {
     key: 'getAdStudies',
@@ -11170,6 +10269,13 @@ var User = function (_AbstractCrudObject) {
       return this.getEdge(Business, fields, params, fetchFirstPage, '/businesses');
     }
   }, {
+    key: 'createBusiness',
+    value: function createBusiness(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      return this.createEdge('/businesses', fields, params, Business);
+    }
+  }, {
     key: 'getConversations',
     value: function getConversations(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -11186,28 +10292,12 @@ var User = function (_AbstractCrudObject) {
       return this.getEdge(PageUserMessageThreadLabel, fields, params, fetchFirstPage, '/custom_labels');
     }
   }, {
-    key: 'getDomains',
-    value: function getDomains(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(Domain, fields, params, fetchFirstPage, '/domains');
-    }
-  }, {
     key: 'getEvents',
     value: function getEvents(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
       var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
 
       return this.getEdge(Event, fields, params, fetchFirstPage, '/events');
-    }
-  }, {
-    key: 'getFamily',
-    value: function getFamily(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(User, fields, params, fetchFirstPage, '/family');
     }
   }, {
     key: 'createFeed',
@@ -11253,13 +10343,6 @@ var User = function (_AbstractCrudObject) {
       var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
 
       return this.getEdge(Page, fields, params, fetchFirstPage, '/games');
-    }
-  }, {
-    key: 'createGamesAchieve',
-    value: function createGamesAchieve(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/games_achieves', fields, params);
     }
   }, {
     key: 'createGamesPlay',
@@ -11308,14 +10391,6 @@ var User = function (_AbstractCrudObject) {
       return this.getEdge(UserIDForPage, fields, params, fetchFirstPage, '/ids_for_pages');
     }
   }, {
-    key: 'getInsights',
-    value: function getInsights(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(InsightsResult, fields, params, fetchFirstPage, '/insights');
-    }
-  }, {
     key: 'getLikes',
     value: function getLikes(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -11352,13 +10427,6 @@ var User = function (_AbstractCrudObject) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
       return this.createEdge('/live_videos', fields, params, LiveVideo);
-    }
-  }, {
-    key: 'createMfsAccountPinReset',
-    value: function createMfsAccountPinReset(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/mfs_account_pin_reset', fields, params, User);
     }
   }, {
     key: 'getMovies',
@@ -11430,30 +10498,6 @@ var User = function (_AbstractCrudObject) {
       return this.getEdge(ProfilePictureSource, fields, params, fetchFirstPage, '/picture');
     }
   }, {
-    key: 'getPosts',
-    value: function getPosts(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(Post, fields, params, fetchFirstPage, '/posts');
-    }
-  }, {
-    key: 'getPromotableDomains',
-    value: function getPromotableDomains(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(Domain, fields, params, fetchFirstPage, '/promotable_domains');
-    }
-  }, {
-    key: 'getPromotableEvents',
-    value: function getPromotableEvents(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(Event, fields, params, fetchFirstPage, '/promotable_events');
-    }
-  }, {
     key: 'getRequestHistory',
     value: function getRequestHistory(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -11468,21 +10512,6 @@ var User = function (_AbstractCrudObject) {
       var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
 
       return this.getEdge(Canvas, fields, params, fetchFirstPage, '/rich_media_documents');
-    }
-  }, {
-    key: 'createScreenName',
-    value: function createScreenName(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/screennames', fields, params, User);
-    }
-  }, {
-    key: 'getSessionKeys',
-    value: function getSessionKeys(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(PlatformSessionKey, fields, params, fetchFirstPage, '/session_keys');
     }
   }, {
     key: 'createStagingResource',
@@ -11506,14 +10535,6 @@ var User = function (_AbstractCrudObject) {
       var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
 
       return this.getEdge(Page, fields, params, fetchFirstPage, '/television');
-    }
-  }, {
-    key: 'getThreads',
-    value: function getThreads(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(UnifiedThread, fields, params, fetchFirstPage, '/threads');
     }
   }, {
     key: 'getVideos',
@@ -11587,6 +10608,7 @@ var User = function (_AbstractCrudObject) {
         installed: 'installed',
         interested_in: 'interested_in',
         is_famedeeplinkinguser: 'is_famedeeplinkinguser',
+        is_guest_user: 'is_guest_user',
         is_shared_login: 'is_shared_login',
         is_verified: 'is_verified',
         languages: 'languages',
@@ -11612,6 +10634,7 @@ var User = function (_AbstractCrudObject) {
         short_name: 'short_name',
         significant_other: 'significant_other',
         sports: 'sports',
+        supports_donate_button_in_live_video: 'supports_donate_button_in_live_video',
         test_group: 'test_group',
         third_party_id: 'third_party_id',
         timezone: 'timezone',
@@ -11641,14 +10664,6 @@ var User = function (_AbstractCrudObject) {
       });
     }
   }, {
-    key: 'ResumeType',
-    get: function get() {
-      return Object.freeze({
-        bot_action: 'BOT_ACTION',
-        native: 'NATIVE'
-      });
-    }
-  }, {
     key: 'Filtering',
     get: function get() {
       return Object.freeze({
@@ -11663,59 +10678,6 @@ var User = function (_AbstractCrudObject) {
       return Object.freeze({
         content_update: 'content_update',
         generic: 'generic'
-      });
-    }
-  }, {
-    key: 'ServiceType',
-    get: function get() {
-      return Object.freeze({
-        aim: 'AIM',
-        ask_fm: 'ASK_FM',
-        bbm: 'BBM',
-        bbm_ppid: 'BBM_PPID',
-        cyworld: 'CYWORLD',
-        ebuddy: 'EBUDDY',
-        foursquare: 'FOURSQUARE',
-        gadu: 'GADU',
-        github: 'GITHUB',
-        groupwise: 'GROUPWISE',
-        gtalk: 'GTALK',
-        hyves: 'HYVES',
-        icloud: 'ICLOUD',
-        icq: 'ICQ',
-        instagram: 'INSTAGRAM',
-        jabber: 'JABBER',
-        kakaotalk: 'KAKAOTALK',
-        kik: 'KIK',
-        line: 'LINE',
-        linked_in: 'LINKED_IN',
-        mailru: 'MAILRU',
-        medium: 'MEDIUM',
-        mixi: 'MIXI',
-        msn: 'MSN',
-        myspace: 'MYSPACE',
-        nateon: 'NATEON',
-        ok: 'OK',
-        orkut: 'ORKUT',
-        others: 'OTHERS',
-        pinterest: 'PINTEREST',
-        qip: 'QIP',
-        qq: 'QQ',
-        rediff_bol: 'REDIFF_BOL',
-        skype: 'SKYPE',
-        snapchat: 'SNAPCHAT',
-        sound_cloud: 'SOUND_CLOUD',
-        spotify: 'SPOTIFY',
-        tumblr: 'TUMBLR',
-        twitch: 'TWITCH',
-        twitter: 'TWITTER',
-        vimeo: 'VIMEO',
-        vkontakte: 'VKONTAKTE',
-        wechat: 'WECHAT',
-        whatsapp: 'WHATSAPP',
-        yahoo: 'YAHOO',
-        yahoo_jp: 'YAHOO_JP',
-        you_tube: 'YOU_TUBE'
       });
     }
   }]);
@@ -12052,6 +11014,7 @@ var LiveVideo = function (_AbstractCrudObject) {
         is_reference_only: 'is_reference_only',
         live_encoders: 'live_encoders',
         live_views: 'live_views',
+        overlay_url: 'overlay_url',
         permalink_url: 'permalink_url',
         planned_start_time: 'planned_start_time',
         seconds_left: 'seconds_left',
@@ -12170,19 +11133,28 @@ var Event = function (_AbstractCrudObject) {
   }
 
   createClass(Event, [{
-    key: 'getAdmins',
-    value: function getAdmins(fields) {
+    key: 'getComments',
+    value: function getComments(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
       var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
 
-      return this.getEdge(Profile, fields, params, fetchFirstPage, '/admins');
+      return this.getEdge(NullNode, fields, params, fetchFirstPage, '/comments');
     }
   }, {
-    key: 'createFeed',
-    value: function createFeed(fields) {
+    key: 'getFeed',
+    value: function getFeed(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
 
-      return this.createEdge('/feed', fields, params);
+      return this.getEdge(NullNode, fields, params, fetchFirstPage, '/feed');
+    }
+  }, {
+    key: 'getLiveVideos',
+    value: function getLiveVideos(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
+
+      return this.getEdge(NullNode, fields, params, fetchFirstPage, '/live_videos');
     }
   }, {
     key: 'createLiveVideo',
@@ -12192,11 +11164,12 @@ var Event = function (_AbstractCrudObject) {
       return this.createEdge('/live_videos', fields, params, LiveVideo);
     }
   }, {
-    key: 'createPhoto',
-    value: function createPhoto(fields) {
+    key: 'getPhotos',
+    value: function getPhotos(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
 
-      return this.createEdge('/photos', fields, params, Photo);
+      return this.getEdge(NullNode, fields, params, fetchFirstPage, '/photos');
     }
   }, {
     key: 'getPicture',
@@ -12204,7 +11177,15 @@ var Event = function (_AbstractCrudObject) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
       var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
 
-      return this.getEdge(ProfilePictureSource, fields, params, fetchFirstPage, '/picture');
+      return this.getEdge(NullNode, fields, params, fetchFirstPage, '/picture');
+    }
+  }, {
+    key: 'getPosts',
+    value: function getPosts(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
+
+      return this.getEdge(NullNode, fields, params, fetchFirstPage, '/posts');
     }
   }, {
     key: 'getRoles',
@@ -12213,6 +11194,14 @@ var Event = function (_AbstractCrudObject) {
       var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
 
       return this.getEdge(Profile, fields, params, fetchFirstPage, '/roles');
+    }
+  }, {
+    key: 'getVideos',
+    value: function getVideos(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
+
+      return this.getEdge(NullNode, fields, params, fetchFirstPage, '/videos');
     }
   }, {
     key: 'get',
@@ -12240,6 +11229,7 @@ var Event = function (_AbstractCrudObject) {
         interested_count: 'interested_count',
         is_canceled: 'is_canceled',
         is_draft: 'is_draft',
+        is_online: 'is_online',
         is_page_owned: 'is_page_owned',
         maybe_count: 'maybe_count',
         name: 'name',
@@ -12317,66 +11307,8 @@ var Event = function (_AbstractCrudObject) {
         upcoming: 'upcoming'
       });
     }
-  }, {
-    key: 'PromotableEventTypes',
-    get: function get() {
-      return Object.freeze({
-        offsite_ticket: 'OFFSITE_TICKET',
-        onsite_ticket: 'ONSITE_TICKET',
-        rsvp: 'RSVP'
-      });
-    }
   }]);
   return Event;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
- * PageInsightsAsyncExportRun
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var PageInsightsAsyncExportRun = function (_AbstractCrudObject) {
-  inherits(PageInsightsAsyncExportRun, _AbstractCrudObject);
-
-  function PageInsightsAsyncExportRun() {
-    classCallCheck(this, PageInsightsAsyncExportRun);
-    return possibleConstructorReturn(this, (PageInsightsAsyncExportRun.__proto__ || Object.getPrototypeOf(PageInsightsAsyncExportRun)).apply(this, arguments));
-  }
-
-  createClass(PageInsightsAsyncExportRun, [{
-    key: 'get',
-    value: function get(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return this.read(fields, params);
-    }
-  }], [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        data_level: 'data_level',
-        filters: 'filters',
-        format: 'format',
-        gen_report_date: 'gen_report_date',
-        id: 'id',
-        report_end_date: 'report_end_date',
-        report_start_date: 'report_start_date',
-        sorters: 'sorters',
-        status: 'status'
-      });
-    }
-  }]);
-  return PageInsightsAsyncExportRun;
 }(AbstractCrudObject);
 
 /**
@@ -12794,15 +11726,6 @@ var MediaFingerprint = function (_AbstractCrudObject) {
         movie: 'MOVIE',
         other: 'OTHER',
         songtrack: 'SONGTRACK'
-      });
-    }
-  }, {
-    key: 'FingerprintValidity',
-    get: function get() {
-      return Object.freeze({
-        expired: 'EXPIRED',
-        expiring: 'EXPIRING',
-        valid: 'VALID'
       });
     }
   }]);
@@ -13320,63 +12243,6 @@ var PageSettings = function (_AbstractCrudObject) {
  * 
  */
 /**
- * VideoList
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var VideoList = function (_AbstractCrudObject) {
-  inherits(VideoList, _AbstractCrudObject);
-
-  function VideoList() {
-    classCallCheck(this, VideoList);
-    return possibleConstructorReturn(this, (VideoList.__proto__ || Object.getPrototypeOf(VideoList)).apply(this, arguments));
-  }
-
-  createClass(VideoList, [{
-    key: 'getVideos',
-    value: function getVideos(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(AdVideo, fields, params, fetchFirstPage, '/videos');
-    }
-  }, {
-    key: 'get',
-    value: function get(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return this.read(fields, params);
-    }
-  }], [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        creation_time: 'creation_time',
-        description: 'description',
-        id: 'id',
-        last_modified: 'last_modified',
-        owner: 'owner',
-        season_number: 'season_number',
-        thumbnail: 'thumbnail',
-        title: 'title',
-        videos_count: 'videos_count'
-      });
-    }
-  }]);
-  return VideoList;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
  * Tab
  * @extends AbstractCrudObject
  * @see {@link https://developers.facebook.com/docs/marketing-api/}
@@ -13562,6 +12428,7 @@ var PageUpcomingChange = function (_AbstractCrudObject) {
         effective_time: 'effective_time',
         id: 'id',
         page: 'page',
+        proposal: 'proposal',
         timer_status: 'timer_status'
       });
     }
@@ -13682,9 +12549,9 @@ var VideoCopyright = function (_AbstractCrudObject) {
         reference_file: 'reference_file',
         reference_file_disabled: 'reference_file_disabled',
         reference_file_disabled_by_ops: 'reference_file_disabled_by_ops',
-        reference_file_expired: 'reference_file_expired',
         reference_owner_id: 'reference_owner_id',
         rule_ids: 'rule_ids',
+        tags: 'tags',
         whitelisted_ids: 'whitelisted_ids'
       });
     }
@@ -13708,6 +12575,63 @@ var VideoCopyright = function (_AbstractCrudObject) {
     }
   }]);
   return VideoCopyright;
+}(AbstractCrudObject);
+
+/**
+ * Copyright (c) 2017-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ * 
+ */
+/**
+ * VideoList
+ * @extends AbstractCrudObject
+ * @see {@link https://developers.facebook.com/docs/marketing-api/}
+ */
+
+var VideoList = function (_AbstractCrudObject) {
+  inherits(VideoList, _AbstractCrudObject);
+
+  function VideoList() {
+    classCallCheck(this, VideoList);
+    return possibleConstructorReturn(this, (VideoList.__proto__ || Object.getPrototypeOf(VideoList)).apply(this, arguments));
+  }
+
+  createClass(VideoList, [{
+    key: 'getVideos',
+    value: function getVideos(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
+
+      return this.getEdge(AdVideo, fields, params, fetchFirstPage, '/videos');
+    }
+  }, {
+    key: 'get',
+    value: function get(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      // $FlowFixMe : Support Generic Types
+      return this.read(fields, params);
+    }
+  }], [{
+    key: 'Fields',
+    get: function get() {
+      return Object.freeze({
+        creation_time: 'creation_time',
+        description: 'description',
+        id: 'id',
+        last_modified: 'last_modified',
+        owner: 'owner',
+        season_number: 'season_number',
+        thumbnail: 'thumbnail',
+        title: 'title',
+        videos_count: 'videos_count'
+      });
+    }
+  }]);
+  return VideoList;
 }(AbstractCrudObject);
 
 /**
@@ -13822,27 +12746,12 @@ var Page = function (_AbstractCrudObject) {
       return this.createEdge('/blocked', fields, params);
     }
   }, {
-    key: 'getBusinessProjects',
-    value: function getBusinessProjects(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(BusinessProject, fields, params, fetchFirstPage, '/businessprojects');
-    }
-  }, {
     key: 'getCallToActions',
     value: function getCallToActions(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
       var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
 
       return this.getEdge(PageCallToAction, fields, params, fetchFirstPage, '/call_to_actions');
-    }
-  }, {
-    key: 'createCallToAction',
-    value: function createCallToAction(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/call_to_actions', fields, params, PageCallToAction);
     }
   }, {
     key: 'getCanvasElements',
@@ -13943,6 +12852,28 @@ var Page = function (_AbstractCrudObject) {
       return this.createEdge('/custom_labels', fields, params, PageUserMessageThreadLabel);
     }
   }, {
+    key: 'deleteCustomUserSettings',
+    value: function deleteCustomUserSettings() {
+      var params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+
+      return get$1(Page.prototype.__proto__ || Object.getPrototypeOf(Page.prototype), 'deleteEdge', this).call(this, '/custom_user_settings', params);
+    }
+  }, {
+    key: 'getCustomUserSettings',
+    value: function getCustomUserSettings(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
+
+      return this.getEdge(CustomUserSettings, fields, params, fetchFirstPage, '/custom_user_settings');
+    }
+  }, {
+    key: 'createCustomUserSetting',
+    value: function createCustomUserSetting(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      return this.createEdge('/custom_user_settings', fields, params, Page);
+    }
+  }, {
     key: 'getEvents',
     value: function getEvents(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -13971,7 +12902,7 @@ var Page = function (_AbstractCrudObject) {
     value: function createFeed(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
-      return this.createEdge('/feed', fields, params, PagePost);
+      return this.createEdge('/feed', fields, params, Page);
     }
   }, {
     key: 'getGlobalBrandChildren',
@@ -13996,14 +12927,6 @@ var Page = function (_AbstractCrudObject) {
       var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
 
       return this.getEdge(InsightsResult, fields, params, fetchFirstPage, '/insights');
-    }
-  }, {
-    key: 'getInsightsExports',
-    value: function getInsightsExports(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(PageInsightsAsyncExportRun, fields, params, fetchFirstPage, '/insights_exports');
     }
   }, {
     key: 'getInstagramAccounts',
@@ -14162,13 +13085,6 @@ var Page = function (_AbstractCrudObject) {
       var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
 
       return this.getEdge(MessengerDestinationPageWelcomeMessage, fields, params, fetchFirstPage, '/messenger_ads_page_welcome_messages');
-    }
-  }, {
-    key: 'createMessengerCode',
-    value: function createMessengerCode(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/messenger_codes', fields, params, Page);
     }
   }, {
     key: 'deleteMessengerProfile',
@@ -14397,14 +13313,6 @@ var Page = function (_AbstractCrudObject) {
       return this.createEdge('/settings', fields, params, Page);
     }
   }, {
-    key: 'getShowPlaylists',
-    value: function getShowPlaylists(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(VideoList, fields, params, fetchFirstPage, '/show_playlists');
-    }
-  }, {
     key: 'deleteSubscribedApps',
     value: function deleteSubscribedApps() {
       var params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
@@ -14525,6 +13433,13 @@ var Page = function (_AbstractCrudObject) {
       return this.getEdge(VideoCopyrightRule, fields, params, fetchFirstPage, '/video_copyright_rules');
     }
   }, {
+    key: 'createVideoCopyrightRule',
+    value: function createVideoCopyrightRule(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      return this.createEdge('/video_copyright_rules', fields, params, VideoCopyrightRule);
+    }
+  }, {
     key: 'createVideoCopyright',
     value: function createVideoCopyright(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -14590,7 +13505,6 @@ var Page = function (_AbstractCrudObject) {
         ad_campaign: 'ad_campaign',
         affiliation: 'affiliation',
         app_id: 'app_id',
-        app_links: 'app_links',
         artists_we_like: 'artists_we_like',
         attire: 'attire',
         awards: 'awards',
@@ -14615,8 +13529,10 @@ var Page = function (_AbstractCrudObject) {
         cover: 'cover',
         culinary_team: 'culinary_team',
         current_location: 'current_location',
+        delivery_and_pickup_option_info: 'delivery_and_pickup_option_info',
         description: 'description',
         description_html: 'description_html',
+        differently_open_offerings: 'differently_open_offerings',
         directed_by: 'directed_by',
         display_subtext: 'display_subtext',
         displayed_message_response_time: 'displayed_message_response_time',
@@ -14655,7 +13571,6 @@ var Page = function (_AbstractCrudObject) {
         is_verified: 'is_verified',
         is_webhooks_subscribed: 'is_webhooks_subscribed',
         keywords: 'keywords',
-        leadgen_form_preview_details: 'leadgen_form_preview_details',
         leadgen_tos_acceptance_time: 'leadgen_tos_acceptance_time',
         leadgen_tos_accepted: 'leadgen_tos_accepted',
         leadgen_tos_accepting_user: 'leadgen_tos_accepting_user',
@@ -14712,8 +13627,10 @@ var Page = function (_AbstractCrudObject) {
         store_location_descriptor: 'store_location_descriptor',
         store_number: 'store_number',
         studio: 'studio',
+        supports_donate_button_in_live_video: 'supports_donate_button_in_live_video',
         supports_instant_articles: 'supports_instant_articles',
         talking_about_count: 'talking_about_count',
+        temporary_status: 'temporary_status',
         unread_message_count: 'unread_message_count',
         unread_notif_count: 'unread_notif_count',
         unseen_message_count: 'unseen_message_count',
@@ -14799,11 +13716,22 @@ var Page = function (_AbstractCrudObject) {
       });
     }
   }, {
+    key: 'TemporaryStatus',
+    get: function get() {
+      return Object.freeze({
+        differently_open: 'DIFFERENTLY_OPEN',
+        no_data: 'NO_DATA',
+        operating_as_usual: 'OPERATING_AS_USUAL',
+        temporarily_closed: 'TEMPORARILY_CLOSED'
+      });
+    }
+  }, {
     key: 'PermittedTasks',
     get: function get() {
       return Object.freeze({
         advertise: 'ADVERTISE',
         analyze: 'ANALYZE',
+        cashier_role: 'CASHIER_ROLE',
         create_content: 'CREATE_CONTENT',
         manage: 'MANAGE',
         manage_jobs: 'MANAGE_JOBS',
@@ -14812,9 +13740,12 @@ var Page = function (_AbstractCrudObject) {
         moderate_community: 'MODERATE_COMMUNITY',
         pages_messaging: 'PAGES_MESSAGING',
         pages_messaging_subscriptions: 'PAGES_MESSAGING_SUBSCRIPTIONS',
-        platform_manage_pages: 'PLATFORM_MANAGE_PAGES',
-        platform_pages_manage_instant_articles: 'PLATFORM_PAGES_MANAGE_INSTANT_ARTICLES',
-        platform_read_insights: 'PLATFORM_READ_INSIGHTS',
+        profile_plus_advertise: 'PROFILE_PLUS_ADVERTISE',
+        profile_plus_analyze: 'PROFILE_PLUS_ANALYZE',
+        profile_plus_create_content: 'PROFILE_PLUS_CREATE_CONTENT',
+        profile_plus_manage: 'PROFILE_PLUS_MANAGE',
+        profile_plus_messaging: 'PROFILE_PLUS_MESSAGING',
+        profile_plus_moderate: 'PROFILE_PLUS_MODERATE',
         read_page_mailboxes: 'READ_PAGE_MAILBOXES',
         view_monetization_insights: 'VIEW_MONETIZATION_INSIGHTS'
       });
@@ -14825,6 +13756,7 @@ var Page = function (_AbstractCrudObject) {
       return Object.freeze({
         advertise: 'ADVERTISE',
         analyze: 'ANALYZE',
+        cashier_role: 'CASHIER_ROLE',
         create_content: 'CREATE_CONTENT',
         manage: 'MANAGE',
         manage_jobs: 'MANAGE_JOBS',
@@ -14833,11 +13765,92 @@ var Page = function (_AbstractCrudObject) {
         moderate_community: 'MODERATE_COMMUNITY',
         pages_messaging: 'PAGES_MESSAGING',
         pages_messaging_subscriptions: 'PAGES_MESSAGING_SUBSCRIPTIONS',
-        platform_manage_pages: 'PLATFORM_MANAGE_PAGES',
-        platform_pages_manage_instant_articles: 'PLATFORM_PAGES_MANAGE_INSTANT_ARTICLES',
-        platform_read_insights: 'PLATFORM_READ_INSIGHTS',
+        profile_plus_advertise: 'PROFILE_PLUS_ADVERTISE',
+        profile_plus_analyze: 'PROFILE_PLUS_ANALYZE',
+        profile_plus_create_content: 'PROFILE_PLUS_CREATE_CONTENT',
+        profile_plus_manage: 'PROFILE_PLUS_MANAGE',
+        profile_plus_messaging: 'PROFILE_PLUS_MESSAGING',
+        profile_plus_moderate: 'PROFILE_PLUS_MODERATE',
         read_page_mailboxes: 'READ_PAGE_MAILBOXES',
         view_monetization_insights: 'VIEW_MONETIZATION_INSIGHTS'
+      });
+    }
+  }, {
+    key: 'BackdatedTimeGranularity',
+    get: function get() {
+      return Object.freeze({
+        day: 'day',
+        hour: 'hour',
+        min: 'min',
+        month: 'month',
+        none: 'none',
+        year: 'year'
+      });
+    }
+  }, {
+    key: 'CheckinEntryPoint',
+    get: function get() {
+      return Object.freeze({
+        branding_checkin: 'BRANDING_CHECKIN',
+        branding_other: 'BRANDING_OTHER',
+        branding_photo: 'BRANDING_PHOTO',
+        branding_status: 'BRANDING_STATUS'
+      });
+    }
+  }, {
+    key: 'Formatting',
+    get: function get() {
+      return Object.freeze({
+        markdown: 'MARKDOWN',
+        plaintext: 'PLAINTEXT'
+      });
+    }
+  }, {
+    key: 'PlaceAttachmentSetting',
+    get: function get() {
+      return Object.freeze({
+        value_1: '1',
+        value_2: '2'
+      });
+    }
+  }, {
+    key: 'PostSurfacesBlacklist',
+    get: function get() {
+      return Object.freeze({
+        value_1: '1',
+        value_2: '2',
+        value_3: '3',
+        value_4: '4',
+        value_5: '5'
+      });
+    }
+  }, {
+    key: 'PostingToRedspace',
+    get: function get() {
+      return Object.freeze({
+        disabled: 'disabled',
+        enabled: 'enabled'
+      });
+    }
+  }, {
+    key: 'TargetSurface',
+    get: function get() {
+      return Object.freeze({
+        story: 'STORY',
+        timeline: 'TIMELINE'
+      });
+    }
+  }, {
+    key: 'UnpublishedContentType',
+    get: function get() {
+      return Object.freeze({
+        ads_post: 'ADS_POST',
+        draft: 'DRAFT',
+        inline_created: 'INLINE_CREATED',
+        published: 'PUBLISHED',
+        reviewable_branded_content: 'REVIEWABLE_BRANDED_CONTENT',
+        scheduled: 'SCHEDULED',
+        scheduled_recurring: 'SCHEDULED_RECURRING'
       });
     }
   }, {
@@ -14871,16 +13884,10 @@ var Page = function (_AbstractCrudObject) {
     get: function get() {
       return Object.freeze({
         mark_seen: 'MARK_SEEN',
+        react: 'REACT',
         typing_off: 'TYPING_OFF',
-        typing_on: 'TYPING_ON'
-      });
-    }
-  }, {
-    key: 'Type',
-    get: function get() {
-      return Object.freeze({
-        ref: 'REF',
-        standard: 'STANDARD'
+        typing_on: 'TYPING_ON',
+        unreact: 'UNREACT'
       });
     }
   }, {
@@ -14939,10 +13946,12 @@ var Page = function (_AbstractCrudObject) {
         hometown: 'hometown',
         hours: 'hours',
         invoice_access_invoice_change: 'invoice_access_invoice_change',
+        invoice_access_onboarding_status_active: 'invoice_access_onboarding_status_active',
         leadgen: 'leadgen',
         leadgen_fat: 'leadgen_fat',
         live_videos: 'live_videos',
         location: 'location',
+        mcom_invoice_change: 'mcom_invoice_change',
         members: 'members',
         mention: 'mention',
         merchant_review: 'merchant_review',
@@ -14985,6 +13994,7 @@ var Page = function (_AbstractCrudObject) {
         ratings: 'ratings',
         registration: 'registration',
         standby: 'standby',
+        user_action: 'user_action',
         video_text_question_responses: 'video_text_question_responses',
         videos: 'videos',
         website: 'website'
@@ -15083,14 +14093,6 @@ var Post = function (_AbstractCrudObject) {
       return this.getEdge(RTBDynamicPost, fields, params, fetchFirstPage, '/dynamic_posts');
     }
   }, {
-    key: 'getEditActions',
-    value: function getEditActions(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(AbstractObject, fields, params, fetchFirstPage, '/edit_actions');
-    }
-  }, {
     key: 'getInsights',
     value: function getInsights(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -15104,14 +14106,6 @@ var Post = function (_AbstractCrudObject) {
       var params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
 
       return get$1(Post.prototype.__proto__ || Object.getPrototypeOf(Post.prototype), 'deleteEdge', this).call(this, '/likes', params);
-    }
-  }, {
-    key: 'getLikes',
-    value: function getLikes(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(Profile, fields, params, fetchFirstPage, '/likes');
     }
   }, {
     key: 'createLike',
@@ -15158,14 +14152,6 @@ var Post = function (_AbstractCrudObject) {
       var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
 
       return this.getEdge(Profile, fields, params, fetchFirstPage, '/to');
-    }
-  }, {
-    key: 'getWithTags',
-    value: function getWithTags(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(Profile, fields, params, fetchFirstPage, '/with_tags');
     }
 
     // $FlowFixMe : Support Generic Types
@@ -15228,6 +14214,7 @@ var Post = function (_AbstractCrudObject) {
         is_eligible_for_promotion: 'is_eligible_for_promotion',
         is_expired: 'is_expired',
         is_hidden: 'is_hidden',
+        is_inline_created: 'is_inline_created',
         is_instagram_eligible: 'is_instagram_eligible',
         is_popular: 'is_popular',
         is_published: 'is_published',
@@ -15293,49 +14280,8 @@ var Post = function (_AbstractCrudObject) {
         normal: 'normal'
       });
     }
-  }, {
-    key: 'With',
-    get: function get() {
-      return Object.freeze({
-        location: 'LOCATION'
-      });
-    }
   }]);
   return Post;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
- * TaggableSubject
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var TaggableSubject = function (_AbstractCrudObject) {
-  inherits(TaggableSubject, _AbstractCrudObject);
-
-  function TaggableSubject() {
-    classCallCheck(this, TaggableSubject);
-    return possibleConstructorReturn(this, (TaggableSubject.__proto__ || Object.getPrototypeOf(TaggableSubject)).apply(this, arguments));
-  }
-
-  createClass(TaggableSubject, null, [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        id: 'id',
-        name: 'name'
-      });
-    }
-  }]);
-  return TaggableSubject;
 }(AbstractCrudObject);
 
 /**
@@ -15399,14 +14345,6 @@ var Photo = function (_AbstractCrudObject) {
       return this.createEdge('/likes', fields, params, Photo);
     }
   }, {
-    key: 'getReactions',
-    value: function getReactions(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(Profile, fields, params, fetchFirstPage, '/reactions');
-    }
-  }, {
     key: 'getSharedPosts',
     value: function getSharedPosts(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -15421,14 +14359,6 @@ var Photo = function (_AbstractCrudObject) {
       var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
 
       return this.getEdge(Page, fields, params, fetchFirstPage, '/sponsor_tags');
-    }
-  }, {
-    key: 'getTags',
-    value: function getTags(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(TaggableSubject, fields, params, fetchFirstPage, '/tags');
     }
 
     // $FlowFixMe : Support Generic Types
@@ -15558,14 +14488,6 @@ var Album = function (_AbstractCrudObject) {
       return this.createEdge('/comments', fields, params, Comment);
     }
   }, {
-    key: 'getLikes',
-    value: function getLikes(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(Profile, fields, params, fetchFirstPage, '/likes');
-    }
-  }, {
     key: 'createLike',
     value: function createLike(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -15594,14 +14516,6 @@ var Album = function (_AbstractCrudObject) {
       var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
 
       return this.getEdge(ProfilePictureSource, fields, params, fetchFirstPage, '/picture');
-    }
-  }, {
-    key: 'getReactions',
-    value: function getReactions(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(Profile, fields, params, fetchFirstPage, '/reactions');
     }
   }, {
     key: 'getSharedPosts',
@@ -15771,13 +14685,6 @@ var Group = function (_AbstractCrudObject) {
       return this.createEdge('/members', fields, params, Group);
     }
   }, {
-    key: 'createOpenGraphActionFeed',
-    value: function createOpenGraphActionFeed(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/open_graph_action_feed', fields, params);
-    }
-  }, {
     key: 'getOptedInMembers',
     value: function getOptedInMembers(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -15872,9 +14779,9 @@ var Group = function (_AbstractCrudObject) {
     key: 'PostPermissions',
     get: function get() {
       return Object.freeze({
-        admin_only: 'ADMIN_ONLY',
-        anyone: 'ANYONE',
-        none: 'NONE'
+        value_0: '0',
+        value_1: '1',
+        value_2: '2'
       });
     }
   }, {
@@ -15887,6 +14794,7 @@ var Group = function (_AbstractCrudObject) {
         couple: 'COUPLE',
         coworkers: 'COWORKERS',
         custom: 'CUSTOM',
+        deals: 'DEALS',
         ephemeral: 'EPHEMERAL',
         event_planning: 'EVENT_PLANNING',
         family: 'FAMILY',
@@ -15927,7 +14835,8 @@ var Group = function (_AbstractCrudObject) {
         work_recruiting: 'WORK_RECRUITING',
         work_social: 'WORK_SOCIAL',
         work_team: 'WORK_TEAM',
-        work_teamwork: 'WORK_TEAMWORK'
+        work_teamwork: 'WORK_TEAMWORK',
+        work_vc_call: 'WORK_VC_CALL'
       });
     }
   }, {
@@ -15940,6 +14849,7 @@ var Group = function (_AbstractCrudObject) {
         couple: 'COUPLE',
         coworkers: 'COWORKERS',
         custom: 'CUSTOM',
+        deals: 'DEALS',
         ephemeral: 'EPHEMERAL',
         event_planning: 'EVENT_PLANNING',
         family: 'FAMILY',
@@ -15980,33 +14890,20 @@ var Group = function (_AbstractCrudObject) {
         work_recruiting: 'WORK_RECRUITING',
         work_social: 'WORK_SOCIAL',
         work_team: 'WORK_TEAM',
-        work_teamwork: 'WORK_TEAMWORK'
+        work_teamwork: 'WORK_TEAMWORK',
+        work_vc_call: 'WORK_VC_CALL'
       });
     }
   }, {
     key: 'SuggestionCategory',
     get: function get() {
       return Object.freeze({
-        close_friends: 'CLOSE_FRIENDS',
-        close_friends_generic: 'CLOSE_FRIENDS_GENERIC',
-        current_city: 'CURRENT_CITY',
         event: 'EVENT',
-        family: 'FAMILY',
-        friend_list: 'FRIEND_LIST',
-        games: 'GAMES',
-        life_event: 'LIFE_EVENT',
         messenger: 'MESSENGER',
-        messenger_thread: 'MESSENGER_THREAD',
-        nearby_friends: 'NEARBY_FRIENDS',
-        page_admin: 'PAGE_ADMIN',
-        school: 'SCHOOL',
-        school_generic: 'SCHOOL_GENERIC',
-        top_page: 'TOP_PAGE',
         work: 'WORK',
         workplace: 'WORKPLACE',
         workplace_1_1: 'WORKPLACE_1_1',
-        workplace_manager: 'WORKPLACE_MANAGER',
-        work_generic: 'WORK_GENERIC'
+        workplace_manager: 'WORKPLACE_MANAGER'
       });
     }
   }]);
@@ -16171,14 +15068,6 @@ var Application = function (_AbstractCrudObject) {
       return get$1(Application.prototype.__proto__ || Object.getPrototypeOf(Application.prototype), 'deleteEdge', this).call(this, '/banned', params);
     }
   }, {
-    key: 'getBanned',
-    value: function getBanned(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(User, fields, params, fetchFirstPage, '/banned');
-    }
-  }, {
     key: 'getButtonAutoDetectionDeviceSelection',
     value: function getButtonAutoDetectionDeviceSelection(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -16194,26 +15083,11 @@ var Application = function (_AbstractCrudObject) {
       return this.createEdge('/button_indexing', fields, params, Application);
     }
   }, {
-    key: 'createCodelessEventBinding',
-    value: function createCodelessEventBinding(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/codeless_event_bindings', fields, params, Application);
-    }
-  }, {
     key: 'createCodelessEventMapping',
     value: function createCodelessEventMapping(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
       return this.createEdge('/codeless_event_mappings', fields, params, Application);
-    }
-  }, {
-    key: 'getCustomAudienceThirdPartyId',
-    value: function getCustomAudienceThirdPartyId(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(AbstractObject, fields, params, fetchFirstPage, '/custom_audience_third_party_id');
     }
   }, {
     key: 'getDaChecks',
@@ -16230,21 +15104,6 @@ var Application = function (_AbstractCrudObject) {
       var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
 
       return this.getEdge(Event, fields, params, fetchFirstPage, '/events');
-    }
-  }, {
-    key: 'getFullAppIndexingInfos',
-    value: function getFullAppIndexingInfos(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(AbstractObject, fields, params, fetchFirstPage, '/full_app_indexing_infos');
-    }
-  }, {
-    key: 'createFullAppIndexingInfo',
-    value: function createFullAppIndexingInfo(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/full_app_indexing_infos', fields, params);
     }
   }, {
     key: 'getInsightsPushSchedule',
@@ -16318,6 +15177,14 @@ var Application = function (_AbstractCrudObject) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
       return this.createEdge('/occludespopups', fields, params);
+    }
+  }, {
+    key: 'getOzoneRelease',
+    value: function getOzoneRelease(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
+
+      return this.getEdge(AbstractObject, fields, params, fetchFirstPage, '/ozone_release');
     }
   }, {
     key: 'createPageActivity',
@@ -16827,6 +15694,344 @@ var CustomConversion = function (_AbstractCrudObject) {
  * 
  */
 /**
+ * CustomAudiencePrefillState
+ * @extends AbstractCrudObject
+ * @see {@link https://developers.facebook.com/docs/marketing-api/}
+ */
+
+var CustomAudiencePrefillState = function (_AbstractCrudObject) {
+  inherits(CustomAudiencePrefillState, _AbstractCrudObject);
+
+  function CustomAudiencePrefillState() {
+    classCallCheck(this, CustomAudiencePrefillState);
+    return possibleConstructorReturn(this, (CustomAudiencePrefillState.__proto__ || Object.getPrototypeOf(CustomAudiencePrefillState)).apply(this, arguments));
+  }
+
+  createClass(CustomAudiencePrefillState, null, [{
+    key: 'Fields',
+    get: function get() {
+      return Object.freeze({
+        description: 'description',
+        num_added: 'num_added',
+        status: 'status'
+      });
+    }
+  }]);
+  return CustomAudiencePrefillState;
+}(AbstractCrudObject);
+
+/**
+ * Copyright (c) 2017-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ * 
+ */
+/**
+ * CustomAudienceSession
+ * @extends AbstractCrudObject
+ * @see {@link https://developers.facebook.com/docs/marketing-api/}
+ */
+
+var CustomAudienceSession = function (_AbstractCrudObject) {
+  inherits(CustomAudienceSession, _AbstractCrudObject);
+
+  function CustomAudienceSession() {
+    classCallCheck(this, CustomAudienceSession);
+    return possibleConstructorReturn(this, (CustomAudienceSession.__proto__ || Object.getPrototypeOf(CustomAudienceSession)).apply(this, arguments));
+  }
+
+  createClass(CustomAudienceSession, null, [{
+    key: 'Fields',
+    get: function get() {
+      return Object.freeze({
+        end_time: 'end_time',
+        num_invalid_entries: 'num_invalid_entries',
+        num_matched: 'num_matched',
+        num_received: 'num_received',
+        progress: 'progress',
+        session_id: 'session_id',
+        stage: 'stage',
+        start_time: 'start_time'
+      });
+    }
+  }]);
+  return CustomAudienceSession;
+}(AbstractCrudObject);
+
+/**
+ * Copyright (c) 2017-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ * 
+ */
+/**
+ * CustomAudiencesharedAccountInfo
+ * @extends AbstractCrudObject
+ * @see {@link https://developers.facebook.com/docs/marketing-api/}
+ */
+
+var CustomAudiencesharedAccountInfo = function (_AbstractCrudObject) {
+  inherits(CustomAudiencesharedAccountInfo, _AbstractCrudObject);
+
+  function CustomAudiencesharedAccountInfo() {
+    classCallCheck(this, CustomAudiencesharedAccountInfo);
+    return possibleConstructorReturn(this, (CustomAudiencesharedAccountInfo.__proto__ || Object.getPrototypeOf(CustomAudiencesharedAccountInfo)).apply(this, arguments));
+  }
+
+  createClass(CustomAudiencesharedAccountInfo, null, [{
+    key: 'Fields',
+    get: function get() {
+      return Object.freeze({
+        account_id: 'account_id',
+        account_name: 'account_name',
+        business_id: 'business_id',
+        business_name: 'business_name',
+        sharing_status: 'sharing_status'
+      });
+    }
+  }]);
+  return CustomAudiencesharedAccountInfo;
+}(AbstractCrudObject);
+
+/**
+ * Copyright (c) 2017-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ * 
+ */
+/**
+ * CustomAudience
+ * @extends AbstractCrudObject
+ * @see {@link https://developers.facebook.com/docs/marketing-api/}
+ */
+
+var CustomAudience = function (_AbstractCrudObject) {
+  inherits(CustomAudience, _AbstractCrudObject);
+
+  function CustomAudience() {
+    classCallCheck(this, CustomAudience);
+    return possibleConstructorReturn(this, (CustomAudience.__proto__ || Object.getPrototypeOf(CustomAudience)).apply(this, arguments));
+  }
+
+  createClass(CustomAudience, [{
+    key: 'deleteAdAccounts',
+    value: function deleteAdAccounts() {
+      var params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+
+      return get$1(CustomAudience.prototype.__proto__ || Object.getPrototypeOf(CustomAudience.prototype), 'deleteEdge', this).call(this, '/adaccounts', params);
+    }
+  }, {
+    key: 'getAdAccounts',
+    value: function getAdAccounts(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
+
+      return this.getEdge(AdAccount, fields, params, fetchFirstPage, '/adaccounts');
+    }
+  }, {
+    key: 'createAdAccount',
+    value: function createAdAccount(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      return this.createEdge('/adaccounts', fields, params, CustomAudience);
+    }
+  }, {
+    key: 'getAds',
+    value: function getAds(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
+
+      return this.getEdge(Ad, fields, params, fetchFirstPage, '/ads');
+    }
+  }, {
+    key: 'getPrefills',
+    value: function getPrefills(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
+
+      return this.getEdge(CustomAudiencePrefillState, fields, params, fetchFirstPage, '/prefills');
+    }
+  }, {
+    key: 'getSessions',
+    value: function getSessions(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
+
+      return this.getEdge(CustomAudienceSession, fields, params, fetchFirstPage, '/sessions');
+    }
+  }, {
+    key: 'getSharedAccountInfo',
+    value: function getSharedAccountInfo(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
+
+      return this.getEdge(CustomAudiencesharedAccountInfo, fields, params, fetchFirstPage, '/shared_account_info');
+    }
+  }, {
+    key: 'deleteUsers',
+    value: function deleteUsers() {
+      var params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+
+      return get$1(CustomAudience.prototype.__proto__ || Object.getPrototypeOf(CustomAudience.prototype), 'deleteEdge', this).call(this, '/users', params);
+    }
+  }, {
+    key: 'createUser',
+    value: function createUser(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      return this.createEdge('/users', fields, params, CustomAudience);
+    }
+
+    // $FlowFixMe : Support Generic Types
+
+  }, {
+    key: 'delete',
+    value: function _delete(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      // $FlowFixMe : Support Generic Types
+      return get$1(CustomAudience.prototype.__proto__ || Object.getPrototypeOf(CustomAudience.prototype), 'delete', this).call(this, params);
+    }
+  }, {
+    key: 'get',
+    value: function get(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      // $FlowFixMe : Support Generic Types
+      return this.read(fields, params);
+    }
+
+    // $FlowFixMe : Support Generic Types
+
+  }, {
+    key: 'update',
+    value: function update(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      // $FlowFixMe : Support Generic Types
+      return get$1(CustomAudience.prototype.__proto__ || Object.getPrototypeOf(CustomAudience.prototype), 'update', this).call(this, params);
+    }
+  }], [{
+    key: 'Fields',
+    get: function get() {
+      return Object.freeze({
+        account_id: 'account_id',
+        approximate_count: 'approximate_count',
+        customer_file_source: 'customer_file_source',
+        data_source: 'data_source',
+        data_source_types: 'data_source_types',
+        datafile_custom_audience_uploading_status: 'datafile_custom_audience_uploading_status',
+        delivery_status: 'delivery_status',
+        description: 'description',
+        excluded_custom_audiences: 'excluded_custom_audiences',
+        external_event_source: 'external_event_source',
+        household_audience: 'household_audience',
+        id: 'id',
+        included_custom_audiences: 'included_custom_audiences',
+        is_household: 'is_household',
+        is_snapshot: 'is_snapshot',
+        is_value_based: 'is_value_based',
+        lookalike_audience_ids: 'lookalike_audience_ids',
+        lookalike_spec: 'lookalike_spec',
+        name: 'name',
+        operation_status: 'operation_status',
+        opt_out_link: 'opt_out_link',
+        permission_for_actions: 'permission_for_actions',
+        pixel_id: 'pixel_id',
+        regulated_audience_spec: 'regulated_audience_spec',
+        retention_days: 'retention_days',
+        rev_share_policy_id: 'rev_share_policy_id',
+        rule: 'rule',
+        rule_aggregation: 'rule_aggregation',
+        rule_v2: 'rule_v2',
+        seed_audience: 'seed_audience',
+        sharing_status: 'sharing_status',
+        subtype: 'subtype',
+        time_content_updated: 'time_content_updated',
+        time_created: 'time_created',
+        time_updated: 'time_updated'
+      });
+    }
+  }, {
+    key: 'ClaimObjective',
+    get: function get() {
+      return Object.freeze({
+        automotive_model: 'AUTOMOTIVE_MODEL',
+        collaborative_ads: 'COLLABORATIVE_ADS',
+        home_listing: 'HOME_LISTING',
+        media_title: 'MEDIA_TITLE',
+        product: 'PRODUCT',
+        travel: 'TRAVEL',
+        vehicle: 'VEHICLE',
+        vehicle_offer: 'VEHICLE_OFFER'
+      });
+    }
+  }, {
+    key: 'ContentType',
+    get: function get() {
+      return Object.freeze({
+        automotive_model: 'AUTOMOTIVE_MODEL',
+        destination: 'DESTINATION',
+        flight: 'FLIGHT',
+        home_listing: 'HOME_LISTING',
+        hotel: 'HOTEL',
+        location_based_item: 'LOCATION_BASED_ITEM',
+        media_title: 'MEDIA_TITLE',
+        offline_product: 'OFFLINE_PRODUCT',
+        product: 'PRODUCT',
+        vehicle: 'VEHICLE',
+        vehicle_offer: 'VEHICLE_OFFER'
+      });
+    }
+  }, {
+    key: 'CustomerFileSource',
+    get: function get() {
+      return Object.freeze({
+        both_user_and_partner_provided: 'BOTH_USER_AND_PARTNER_PROVIDED',
+        partner_provided_only: 'PARTNER_PROVIDED_ONLY',
+        user_provided_only: 'USER_PROVIDED_ONLY'
+      });
+    }
+  }, {
+    key: 'Subtype',
+    get: function get() {
+      return Object.freeze({
+        app: 'APP',
+        bag_of_accounts: 'BAG_OF_ACCOUNTS',
+        claim: 'CLAIM',
+        custom: 'CUSTOM',
+        engagement: 'ENGAGEMENT',
+        fox: 'FOX',
+        lookalike: 'LOOKALIKE',
+        managed: 'MANAGED',
+        measurement: 'MEASUREMENT',
+        offline_conversion: 'OFFLINE_CONVERSION',
+        partner: 'PARTNER',
+        regulated_categories_audience: 'REGULATED_CATEGORIES_AUDIENCE',
+        study_rule_audience: 'STUDY_RULE_AUDIENCE',
+        video: 'VIDEO',
+        website: 'WEBSITE'
+      });
+    }
+  }]);
+  return CustomAudience;
+}(AbstractCrudObject);
+
+/**
+ * Copyright (c) 2017-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ * 
+ */
+/**
  * OfflineConversionDataSet
  * @extends AbstractCrudObject
  * @see {@link https://developers.facebook.com/docs/marketing-api/}
@@ -17285,6 +16490,7 @@ var BusinessAssetGroup = function (_AbstractCrudObject) {
       return Object.freeze({
         advertise: 'ADVERTISE',
         analyze: 'ANALYZE',
+        cashier_role: 'CASHIER_ROLE',
         create_content: 'CREATE_CONTENT',
         manage: 'MANAGE',
         manage_jobs: 'MANAGE_JOBS',
@@ -17293,9 +16499,12 @@ var BusinessAssetGroup = function (_AbstractCrudObject) {
         moderate_community: 'MODERATE_COMMUNITY',
         pages_messaging: 'PAGES_MESSAGING',
         pages_messaging_subscriptions: 'PAGES_MESSAGING_SUBSCRIPTIONS',
-        platform_manage_pages: 'PLATFORM_MANAGE_PAGES',
-        platform_pages_manage_instant_articles: 'PLATFORM_PAGES_MANAGE_INSTANT_ARTICLES',
-        platform_read_insights: 'PLATFORM_READ_INSIGHTS',
+        profile_plus_advertise: 'PROFILE_PLUS_ADVERTISE',
+        profile_plus_analyze: 'PROFILE_PLUS_ANALYZE',
+        profile_plus_create_content: 'PROFILE_PLUS_CREATE_CONTENT',
+        profile_plus_manage: 'PROFILE_PLUS_MANAGE',
+        profile_plus_messaging: 'PROFILE_PLUS_MESSAGING',
+        profile_plus_moderate: 'PROFILE_PLUS_MODERATE',
         read_page_mailboxes: 'READ_PAGE_MAILBOXES',
         view_monetization_insights: 'VIEW_MONETIZATION_INSIGHTS'
       });
@@ -17507,13 +16716,6 @@ var AtlasCampaign = function (_AbstractCrudObject) {
       return this.getEdge(BusinessUnit, fields, params, fetchFirstPage, '/business_unit');
     }
   }, {
-    key: 'createImportTemplate',
-    value: function createImportTemplate(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/importtemplate', fields, params, AtlasCampaign);
-    }
-  }, {
     key: 'getMetricsBreakdown',
     value: function getMetricsBreakdown(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -17668,6 +16870,14 @@ var BusinessUnit = function (_AbstractCrudObject) {
   }
 
   createClass(BusinessUnit, [{
+    key: 'getAdAccounts',
+    value: function getAdAccounts(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
+
+      return this.getEdge(AdAccount, fields, params, fetchFirstPage, '/ad_accounts');
+    }
+  }, {
     key: 'getAdPlatforms',
     value: function getAdPlatforms(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -17739,12 +16949,12 @@ var BusinessUnit = function (_AbstractCrudObject) {
       return this.getEdge(AbstractObject, fields, params, fetchFirstPage, '/external_import_file');
     }
   }, {
-    key: 'getFbConversionEvents',
-    value: function getFbConversionEvents(fields) {
+    key: 'getReports',
+    value: function getReports(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
       var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
 
-      return this.getEdge(AbstractObject, fields, params, fetchFirstPage, '/fb_conversion_events');
+      return this.getEdge(AbstractObject, fields, params, fetchFirstPage, '/reports');
     }
   }, {
     key: 'getSources',
@@ -17753,6 +16963,14 @@ var BusinessUnit = function (_AbstractCrudObject) {
       var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
 
       return this.getEdge(AbstractObject, fields, params, fetchFirstPage, '/sources');
+    }
+  }, {
+    key: 'getUsers',
+    value: function getUsers(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
+
+      return this.getEdge(BusinessUser, fields, params, fetchFirstPage, '/users');
     }
   }, {
     key: 'get',
@@ -17790,6 +17008,39 @@ var BusinessUnit = function (_AbstractCrudObject) {
  * 
  */
 /**
+ * CreativeAssetTag
+ * @extends AbstractCrudObject
+ * @see {@link https://developers.facebook.com/docs/marketing-api/}
+ */
+
+var CreativeAssetTag = function (_AbstractCrudObject) {
+  inherits(CreativeAssetTag, _AbstractCrudObject);
+
+  function CreativeAssetTag() {
+    classCallCheck(this, CreativeAssetTag);
+    return possibleConstructorReturn(this, (CreativeAssetTag.__proto__ || Object.getPrototypeOf(CreativeAssetTag)).apply(this, arguments));
+  }
+
+  createClass(CreativeAssetTag, null, [{
+    key: 'Fields',
+    get: function get() {
+      return Object.freeze({
+        name: 'name'
+      });
+    }
+  }]);
+  return CreativeAssetTag;
+}(AbstractCrudObject);
+
+/**
+ * Copyright (c) 2017-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ * 
+ */
+/**
  * BusinessCreativeFolder
  * @extends AbstractCrudObject
  * @see {@link https://developers.facebook.com/docs/marketing-api/}
@@ -17804,13 +17055,6 @@ var BusinessCreativeFolder = function (_AbstractCrudObject) {
   }
 
   createClass(BusinessCreativeFolder, [{
-    key: 'deleteAgencies',
-    value: function deleteAgencies() {
-      var params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-
-      return get$1(BusinessCreativeFolder.prototype.__proto__ || Object.getPrototypeOf(BusinessCreativeFolder.prototype), 'deleteEdge', this).call(this, '/agencies', params);
-    }
-  }, {
     key: 'getAgencies',
     value: function getAgencies(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -17839,6 +17083,14 @@ var BusinessCreativeFolder = function (_AbstractCrudObject) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
       return this.createEdge('/assigned_users', fields, params, BusinessCreativeFolder);
+    }
+  }, {
+    key: 'getSubFolders',
+    value: function getSubFolders(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
+
+      return this.getEdge(BusinessCreativeFolder, fields, params, fetchFirstPage, '/subfolders');
     }
 
     // $FlowFixMe : Support Generic Types
@@ -17876,9 +17128,12 @@ var BusinessCreativeFolder = function (_AbstractCrudObject) {
       return Object.freeze({
         business: 'business',
         creation_time: 'creation_time',
+        creative_insight_permissions: 'creative_insight_permissions',
         description: 'description',
         id: 'id',
-        name: 'name'
+        media_library_url: 'media_library_url',
+        name: 'name',
+        parent_folder: 'parent_folder'
       });
     }
   }, {
@@ -17956,91 +17211,6 @@ var BusinessCreative = function (_AbstractCrudObject) {
     }
   }]);
   return BusinessCreative;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
- * DirectDeal
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var DirectDeal = function (_AbstractCrudObject) {
-  inherits(DirectDeal, _AbstractCrudObject);
-
-  function DirectDeal() {
-    classCallCheck(this, DirectDeal);
-    return possibleConstructorReturn(this, (DirectDeal.__proto__ || Object.getPrototypeOf(DirectDeal)).apply(this, arguments));
-  }
-
-  createClass(DirectDeal, [{
-    key: 'getApplications',
-    value: function getApplications(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(Application, fields, params, fetchFirstPage, '/applications');
-    }
-  }, {
-    key: 'get',
-    value: function get(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return this.read(fields, params);
-    }
-  }], [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        adbreaks_enabled: 'adbreaks_enabled',
-        adset: 'adset',
-        advertiser: 'advertiser',
-        advertiser_lead_email: 'advertiser_lead_email',
-        advertiser_page: 'advertiser_page',
-        cpe_amount: 'cpe_amount',
-        cpe_currency: 'cpe_currency',
-        end_time: 'end_time',
-        id: 'id',
-        lifetime_budget_amount: 'lifetime_budget_amount',
-        lifetime_budget_currency: 'lifetime_budget_currency',
-        lifetime_impressions: 'lifetime_impressions',
-        name: 'name',
-        pages: 'pages',
-        placements: 'placements',
-        priced_by: 'priced_by',
-        publisher_name: 'publisher_name',
-        review_requirement: 'review_requirement',
-        sales_lead_email: 'sales_lead_email',
-        start_time: 'start_time',
-        status: 'status',
-        targeting: 'targeting',
-        third_party_ids: 'third_party_ids',
-        third_party_integrated_deal: 'third_party_integrated_deal'
-      });
-    }
-  }, {
-    key: 'Status',
-    get: function get() {
-      return Object.freeze({
-        value_0: '0',
-        value_1: '1',
-        value_2: '2',
-        value_3: '3',
-        value_4: '4',
-        value_5: '5',
-        value_6: '6'
-      });
-    }
-  }]);
-  return DirectDeal;
 }(AbstractCrudObject);
 
 /**
@@ -18244,6 +17414,17 @@ var ExtendedCreditAllocationConfig = function (_AbstractCrudObject) {
       // $FlowFixMe : Support Generic Types
       return this.read(fields, params);
     }
+
+    // $FlowFixMe : Support Generic Types
+
+  }, {
+    key: 'update',
+    value: function update(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      // $FlowFixMe : Support Generic Types
+      return get$1(ExtendedCreditAllocationConfig.prototype.__proto__ || Object.getPrototypeOf(ExtendedCreditAllocationConfig.prototype), 'update', this).call(this, params);
+    }
   }], [{
     key: 'Fields',
     get: function get() {
@@ -18368,6 +17549,7 @@ var ExtendedCredit = function (_AbstractCrudObject) {
         owner_business: 'owner_business',
         owner_business_name: 'owner_business_name',
         partition_from: 'partition_from',
+        receiving_credit_allocation_config: 'receiving_credit_allocation_config',
         send_bill_to_biz_name: 'send_bill_to_biz_name'
       });
     }
@@ -18406,6 +17588,28 @@ var BusinessImage = function (_AbstractCrudObject) {
       return this.getEdge(AbstractObject, fields, params, fetchFirstPage, '/ad_placement_validation_results');
     }
   }, {
+    key: 'deleteCreativeAssetTags',
+    value: function deleteCreativeAssetTags() {
+      var params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+
+      return get$1(BusinessImage.prototype.__proto__ || Object.getPrototypeOf(BusinessImage.prototype), 'deleteEdge', this).call(this, '/creative_asset_tags', params);
+    }
+  }, {
+    key: 'getCreativeAssetTags',
+    value: function getCreativeAssetTags(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
+
+      return this.getEdge(CreativeAssetTag, fields, params, fetchFirstPage, '/creative_asset_tags');
+    }
+  }, {
+    key: 'createCreativeAssetTag',
+    value: function createCreativeAssetTag(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      return this.createEdge('/creative_asset_tags', fields, params, BusinessImage);
+    }
+  }, {
     key: 'getInsights',
     value: function getInsights(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -18441,6 +17645,7 @@ var BusinessImage = function (_AbstractCrudObject) {
         hash: 'hash',
         height: 'height',
         id: 'id',
+        media_library_url: 'media_library_url',
         name: 'name',
         url: 'url',
         url_128: 'url_128',
@@ -18536,117 +17741,12 @@ var BusinessAssetSharingAgreement = function (_AbstractCrudObject) {
         approve: 'APPROVE',
         decline: 'DECLINE',
         expired: 'EXPIRED',
-        in_progress: 'IN_PROGRESS'
+        in_progress: 'IN_PROGRESS',
+        pending: 'PENDING'
       });
     }
   }]);
   return BusinessAssetSharingAgreement;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
- * BusinessAgreement
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var BusinessAgreement = function (_AbstractCrudObject) {
-  inherits(BusinessAgreement, _AbstractCrudObject);
-
-  function BusinessAgreement() {
-    classCallCheck(this, BusinessAgreement);
-    return possibleConstructorReturn(this, (BusinessAgreement.__proto__ || Object.getPrototypeOf(BusinessAgreement)).apply(this, arguments));
-  }
-
-  createClass(BusinessAgreement, [{
-    key: 'get',
-    value: function get(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return this.read(fields, params);
-    }
-
-    // $FlowFixMe : Support Generic Types
-
-  }, {
-    key: 'update',
-    value: function update(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return get$1(BusinessAgreement.prototype.__proto__ || Object.getPrototypeOf(BusinessAgreement.prototype), 'update', this).call(this, params);
-    }
-  }], [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        id: 'id',
-        request_status: 'request_status'
-      });
-    }
-  }, {
-    key: 'RequestStatus',
-    get: function get() {
-      return Object.freeze({
-        approve: 'APPROVE',
-        decline: 'DECLINE',
-        expired: 'EXPIRED',
-        in_progress: 'IN_PROGRESS'
-      });
-    }
-  }]);
-  return BusinessAgreement;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
- * OfflineTermsOfService
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var OfflineTermsOfService = function (_AbstractCrudObject) {
-  inherits(OfflineTermsOfService, _AbstractCrudObject);
-
-  function OfflineTermsOfService() {
-    classCallCheck(this, OfflineTermsOfService);
-    return possibleConstructorReturn(this, (OfflineTermsOfService.__proto__ || Object.getPrototypeOf(OfflineTermsOfService)).apply(this, arguments));
-  }
-
-  createClass(OfflineTermsOfService, [{
-    key: 'get',
-    value: function get(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return this.read(fields, params);
-    }
-  }], [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        accept_time: 'accept_time',
-        id: 'id',
-        signed_by_user: 'signed_by_user'
-      });
-    }
-  }]);
-  return OfflineTermsOfService;
 }(AbstractCrudObject);
 
 /**
@@ -18836,149 +17936,6 @@ var BusinessRoleRequest = function (_AbstractCrudObject) {
     }
   }]);
   return BusinessRoleRequest;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
- * BusinessPixelTOS
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var BusinessPixelTOS = function (_AbstractCrudObject) {
-  inherits(BusinessPixelTOS, _AbstractCrudObject);
-
-  function BusinessPixelTOS() {
-    classCallCheck(this, BusinessPixelTOS);
-    return possibleConstructorReturn(this, (BusinessPixelTOS.__proto__ || Object.getPrototypeOf(BusinessPixelTOS)).apply(this, arguments));
-  }
-
-  createClass(BusinessPixelTOS, [{
-    key: 'get',
-    value: function get(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return this.read(fields, params);
-    }
-  }], [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        accept_time: 'accept_time',
-        id: 'id'
-      });
-    }
-  }]);
-  return BusinessPixelTOS;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
- * AudiencePermission
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var AudiencePermission = function (_AbstractCrudObject) {
-  inherits(AudiencePermission, _AbstractCrudObject);
-
-  function AudiencePermission() {
-    classCallCheck(this, AudiencePermission);
-    return possibleConstructorReturn(this, (AudiencePermission.__proto__ || Object.getPrototypeOf(AudiencePermission)).apply(this, arguments));
-  }
-
-  createClass(AudiencePermission, null, [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        audience: 'audience',
-        share_account_id: 'share_account_id',
-        share_account_name: 'share_account_name'
-      });
-    }
-  }]);
-  return AudiencePermission;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
- * BusinessOwnedObjectOnBehalfOfRequest
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var BusinessOwnedObjectOnBehalfOfRequest = function (_AbstractCrudObject) {
-  inherits(BusinessOwnedObjectOnBehalfOfRequest, _AbstractCrudObject);
-
-  function BusinessOwnedObjectOnBehalfOfRequest() {
-    classCallCheck(this, BusinessOwnedObjectOnBehalfOfRequest);
-    return possibleConstructorReturn(this, (BusinessOwnedObjectOnBehalfOfRequest.__proto__ || Object.getPrototypeOf(BusinessOwnedObjectOnBehalfOfRequest)).apply(this, arguments));
-  }
-
-  createClass(BusinessOwnedObjectOnBehalfOfRequest, [{
-    key: 'delete',
-
-
-    // $FlowFixMe : Support Generic Types
-    value: function _delete(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return get$1(BusinessOwnedObjectOnBehalfOfRequest.prototype.__proto__ || Object.getPrototypeOf(BusinessOwnedObjectOnBehalfOfRequest.prototype), 'delete', this).call(this, params);
-    }
-  }, {
-    key: 'get',
-    value: function get(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return this.read(fields, params);
-    }
-  }], [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        business_owned_object: 'business_owned_object',
-        id: 'id',
-        receiving_business: 'receiving_business',
-        requesting_business: 'requesting_business',
-        status: 'status'
-      });
-    }
-  }, {
-    key: 'Status',
-    get: function get() {
-      return Object.freeze({
-        approve: 'APPROVE',
-        decline: 'DECLINE',
-        expired: 'EXPIRED',
-        in_progress: 'IN_PROGRESS'
-      });
-    }
-  }]);
-  return BusinessOwnedObjectOnBehalfOfRequest;
 }(AbstractCrudObject);
 
 /**
@@ -19417,13 +18374,6 @@ var Business = function (_AbstractCrudObject) {
       return this.createEdge('/access_token', fields, params, Business);
     }
   }, {
-    key: 'deleteAdAccounts',
-    value: function deleteAdAccounts() {
-      var params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-
-      return get$1(Business.prototype.__proto__ || Object.getPrototypeOf(Business.prototype), 'deleteEdge', this).call(this, '/ad_accounts', params);
-    }
-  }, {
     key: 'getAdStudies',
     value: function getAdStudies(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -19507,6 +18457,14 @@ var Business = function (_AbstractCrudObject) {
       return this.getEdge(AdPlacement, fields, params, fetchFirstPage, '/an_placements');
     }
   }, {
+    key: 'getAttemptedSharingAgreements',
+    value: function getAttemptedSharingAgreements(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
+
+      return this.getEdge(BusinessCreativeFolderSharingAgreement, fields, params, fetchFirstPage, '/attempted_sharing_agreements');
+    }
+  }, {
     key: 'createBlockListDraft',
     value: function createBlockListDraft(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -19538,6 +18496,13 @@ var Business = function (_AbstractCrudObject) {
       return this.getEdge(BusinessUnit, fields, params, fetchFirstPage, '/business_units');
     }
   }, {
+    key: 'createBusinessUnit',
+    value: function createBusinessUnit(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      return this.createEdge('/business_units', fields, params, BusinessUnit);
+    }
+  }, {
     key: 'getBusinessUsers',
     value: function getBusinessUsers(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -19551,21 +18516,6 @@ var Business = function (_AbstractCrudObject) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
       return this.createEdge('/business_users', fields, params, BusinessUser);
-    }
-  }, {
-    key: 'getBusinessProjects',
-    value: function getBusinessProjects(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(BusinessProject, fields, params, fetchFirstPage, '/businessprojects');
-    }
-  }, {
-    key: 'createBusinessProject',
-    value: function createBusinessProject(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/businessprojects', fields, params, BusinessProject);
     }
   }, {
     key: 'createClaimCustomConversion',
@@ -19659,6 +18609,14 @@ var Business = function (_AbstractCrudObject) {
       return this.getEdge(ContentDeliveryReport, fields, params, fetchFirstPage, '/content_delivery_report');
     }
   }, {
+    key: 'getCreativeAssetTags',
+    value: function getCreativeAssetTags(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
+
+      return this.getEdge(CreativeAssetTag, fields, params, fetchFirstPage, '/creative_asset_tags');
+    }
+  }, {
     key: 'getCreativeFolders',
     value: function getCreativeFolders(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -19682,35 +18640,11 @@ var Business = function (_AbstractCrudObject) {
       return this.getEdge(BusinessCreative, fields, params, fetchFirstPage, '/creatives');
     }
   }, {
-    key: 'getCustomConversions',
-    value: function getCustomConversions(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(CustomConversion, fields, params, fetchFirstPage, '/customconversions');
-    }
-  }, {
     key: 'createCustomConversion',
     value: function createCustomConversion(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
       return this.createEdge('/customconversions', fields, params, CustomConversion);
-    }
-  }, {
-    key: 'getDealShowsPages',
-    value: function getDealShowsPages(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(Page, fields, params, fetchFirstPage, '/deal_shows_pages');
-    }
-  }, {
-    key: 'getDirectDeals',
-    value: function getDirectDeals(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(DirectDeal, fields, params, fetchFirstPage, '/direct_deals');
     }
   }, {
     key: 'getEventSourceGroups',
@@ -19751,14 +18685,6 @@ var Business = function (_AbstractCrudObject) {
       return this.getEdge(BusinessAssetSharingAgreement, fields, params, fetchFirstPage, '/initiated_audience_sharing_requests');
     }
   }, {
-    key: 'getInitiatedSharingAgreements',
-    value: function getInitiatedSharingAgreements(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(BusinessAgreement, fields, params, fetchFirstPage, '/initiated_sharing_agreements');
-    }
-  }, {
     key: 'deleteInstagramAccounts',
     value: function deleteInstagramAccounts() {
       var params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
@@ -19772,6 +18698,13 @@ var Business = function (_AbstractCrudObject) {
       var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
 
       return this.getEdge(InstagramUser, fields, params, fetchFirstPage, '/instagram_accounts');
+    }
+  }, {
+    key: 'deleteManagedBusinesses',
+    value: function deleteManagedBusinesses() {
+      var params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+
+      return get$1(Business.prototype.__proto__ || Object.getPrototypeOf(Business.prototype), 'deleteEdge', this).call(this, '/managed_businesses', params);
     }
   }, {
     key: 'createManagedBusiness',
@@ -19801,14 +18734,6 @@ var Business = function (_AbstractCrudObject) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
       return this.createEdge('/offline_conversion_data_sets', fields, params, OfflineConversionDataSet);
-    }
-  }, {
-    key: 'getOfflineTermsOfService',
-    value: function getOfflineTermsOfService(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(OfflineTermsOfService, fields, params, fetchFirstPage, '/offline_terms_of_service');
     }
   }, {
     key: 'getOwnedAdAccounts',
@@ -19940,14 +18865,6 @@ var Business = function (_AbstractCrudObject) {
       return this.getEdge(BusinessPageRequest, fields, params, fetchFirstPage, '/pending_client_pages');
     }
   }, {
-    key: 'getPendingOfflineConversionDataSets',
-    value: function getPendingOfflineConversionDataSets(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(OfflineConversionDataSet, fields, params, fetchFirstPage, '/pending_offline_conversion_data_sets');
-    }
-  }, {
     key: 'getPendingOwnedAdAccounts',
     value: function getPendingOwnedAdAccounts(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -19972,14 +18889,6 @@ var Business = function (_AbstractCrudObject) {
       return this.getEdge(BusinessCreativeFolder, fields, params, fetchFirstPage, '/pending_shared_creative_folders');
     }
   }, {
-    key: 'getPendingSharedPixels',
-    value: function getPendingSharedPixels(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(AdsPixel, fields, params, fetchFirstPage, '/pending_shared_pixels');
-    }
-  }, {
     key: 'getPendingUsers',
     value: function getPendingUsers(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -19996,27 +18905,11 @@ var Business = function (_AbstractCrudObject) {
       return this.getEdge(ProfilePictureSource, fields, params, fetchFirstPage, '/picture');
     }
   }, {
-    key: 'getPixelTos',
-    value: function getPixelTos(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(BusinessPixelTOS, fields, params, fetchFirstPage, '/pixel_tos');
-    }
-  }, {
     key: 'createPixelTo',
     value: function createPixelTo(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
-      return this.createEdge('/pixel_tos', fields, params, BusinessPixelTOS);
-    }
-  }, {
-    key: 'getReceivedAudiencePermissions',
-    value: function getReceivedAudiencePermissions(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(AudiencePermission, fields, params, fetchFirstPage, '/received_audience_permissions');
+      return this.createEdge('/pixel_tos', fields, params);
     }
   }, {
     key: 'getReceivedAudienceSharingRequests',
@@ -20025,45 +18918,6 @@ var Business = function (_AbstractCrudObject) {
       var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
 
       return this.getEdge(BusinessAssetSharingAgreement, fields, params, fetchFirstPage, '/received_audience_sharing_requests');
-    }
-  }, {
-    key: 'getReceivedInprogressOnBehalfRequests',
-    value: function getReceivedInprogressOnBehalfRequests(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(BusinessOwnedObjectOnBehalfOfRequest, fields, params, fetchFirstPage, '/received_inprogress_onbehalf_requests');
-    }
-  }, {
-    key: 'getReceivedSharingAgreements',
-    value: function getReceivedSharingAgreements(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(BusinessAgreement, fields, params, fetchFirstPage, '/received_sharing_agreements');
-    }
-  }, {
-    key: 'getSentInprogressOnBehalfRequests',
-    value: function getSentInprogressOnBehalfRequests(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(BusinessOwnedObjectOnBehalfOfRequest, fields, params, fetchFirstPage, '/sent_inprogress_onbehalf_requests');
-    }
-  }, {
-    key: 'createSentInprogressOnBehalfRequest',
-    value: function createSentInprogressOnBehalfRequest(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/sent_inprogress_onbehalf_requests', fields, params, BusinessOwnedObjectOnBehalfOfRequest);
-    }
-  }, {
-    key: 'getSharedAudiencePermissions',
-    value: function getSharedAudiencePermissions(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(AudiencePermission, fields, params, fetchFirstPage, '/shared_audience_permissions');
     }
   }, {
     key: 'getSystemUsers',
@@ -20211,6 +19065,7 @@ var Business = function (_AbstractCrudObject) {
       return Object.freeze({
         advertise: 'ADVERTISE',
         analyze: 'ANALYZE',
+        cashier_role: 'CASHIER_ROLE',
         create_content: 'CREATE_CONTENT',
         manage: 'MANAGE',
         manage_jobs: 'MANAGE_JOBS',
@@ -20219,9 +19074,12 @@ var Business = function (_AbstractCrudObject) {
         moderate_community: 'MODERATE_COMMUNITY',
         pages_messaging: 'PAGES_MESSAGING',
         pages_messaging_subscriptions: 'PAGES_MESSAGING_SUBSCRIPTIONS',
-        platform_manage_pages: 'PLATFORM_MANAGE_PAGES',
-        platform_pages_manage_instant_articles: 'PLATFORM_PAGES_MANAGE_INSTANT_ARTICLES',
-        platform_read_insights: 'PLATFORM_READ_INSIGHTS',
+        profile_plus_advertise: 'PROFILE_PLUS_ADVERTISE',
+        profile_plus_analyze: 'PROFILE_PLUS_ANALYZE',
+        profile_plus_create_content: 'PROFILE_PLUS_CREATE_CONTENT',
+        profile_plus_manage: 'PROFILE_PLUS_MANAGE',
+        profile_plus_messaging: 'PROFILE_PLUS_MESSAGING',
+        profile_plus_moderate: 'PROFILE_PLUS_MODERATE',
         read_page_mailboxes: 'READ_PAGE_MAILBOXES',
         view_monetization_insights: 'VIEW_MONETIZATION_INSIGHTS'
       });
@@ -20310,13 +19168,6 @@ var AdsPixel = function (_AbstractCrudObject) {
   }
 
   createClass(AdsPixel, [{
-    key: 'deleteAssignedUsers',
-    value: function deleteAssignedUsers() {
-      var params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-
-      return get$1(AdsPixel.prototype.__proto__ || Object.getPrototypeOf(AdsPixel.prototype), 'deleteEdge', this).call(this, '/assigned_users', params);
-    }
-  }, {
     key: 'getAssignedUsers',
     value: function getAssignedUsers(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -20330,14 +19181,6 @@ var AdsPixel = function (_AbstractCrudObject) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
       return this.createEdge('/assigned_users', fields, params, AdsPixel);
-    }
-  }, {
-    key: 'getAudiences',
-    value: function getAudiences(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(CustomAudience, fields, params, fetchFirstPage, '/audiences');
     }
   }, {
     key: 'getDaChecks',
@@ -20553,14 +19396,6 @@ var PartnerStudy = function (_AbstractCrudObject) {
   }
 
   createClass(PartnerStudy, [{
-    key: 'getSubmitters',
-    value: function getSubmitters(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(User, fields, params, fetchFirstPage, '/submitters');
-    }
-  }, {
     key: 'get',
     value: function get(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -20766,14 +19601,6 @@ var AdStudy = function (_AbstractCrudObject) {
       return this.getEdge(AdStudyCell, fields, params, fetchFirstPage, '/cells');
     }
   }, {
-    key: 'getHealthCheckErrors',
-    value: function getHealthCheckErrors(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(AdsTALHealthCheckError, fields, params, fetchFirstPage, '/health_check_errors');
-    }
-  }, {
     key: 'getObjectives',
     value: function getObjectives(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -20787,14 +19614,6 @@ var AdStudy = function (_AbstractCrudObject) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
       return this.createEdge('/objectives', fields, params, AdStudyObjective);
-    }
-  }, {
-    key: 'getViewers',
-    value: function getViewers(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(User, fields, params, fetchFirstPage, '/viewers');
     }
 
     // $FlowFixMe : Support Generic Types
@@ -20852,6 +19671,7 @@ var AdStudy = function (_AbstractCrudObject) {
     get: function get() {
       return Object.freeze({
         continuous_lift_config: 'CONTINUOUS_LIFT_CONFIG',
+        geo_lift: 'GEO_LIFT',
         lift: 'LIFT',
         split_test: 'SPLIT_TEST'
       });
@@ -21160,10 +19980,7 @@ var AdAccountAdVolume = function (_AbstractCrudObject) {
       return Object.freeze({
         actor_id: 'actor_id',
         ads_running_or_in_review_count: 'ads_running_or_in_review_count',
-        has_hit_total_live_ads_limit: 'has_hit_total_live_ads_limit',
-        live_ads_quota_left: 'live_ads_quota_left',
-        total_live_ads_in_current_account: 'total_live_ads_in_current_account',
-        total_live_ads_limit: 'total_live_ads_limit'
+        current_account_ads_running_or_in_review_count: 'current_account_ads_running_or_in_review_count'
       });
     }
   }]);
@@ -21337,56 +20154,6 @@ var AdAsyncRequestSet = function (_AbstractCrudObject) {
  * 
  */
 /**
- * BrandAudience
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var BrandAudience = function (_AbstractCrudObject) {
-  inherits(BrandAudience, _AbstractCrudObject);
-
-  function BrandAudience() {
-    classCallCheck(this, BrandAudience);
-    return possibleConstructorReturn(this, (BrandAudience.__proto__ || Object.getPrototypeOf(BrandAudience)).apply(this, arguments));
-  }
-
-  createClass(BrandAudience, [{
-    key: 'get',
-    value: function get(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return this.read(fields, params);
-    }
-  }], [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        account: 'account',
-        delivery_targeting: 'delivery_targeting',
-        description: 'description',
-        id: 'id',
-        name: 'name',
-        sentence_lines: 'sentence_lines',
-        status: 'status',
-        targeting: 'targeting',
-        time_created: 'time_created',
-        time_updated: 'time_updated'
-      });
-    }
-  }]);
-  return BrandAudience;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
  * BroadTargetingCategories
  * @extends AbstractCrudObject
  * @see {@link https://developers.facebook.com/docs/marketing-api/}
@@ -21516,7 +20283,7 @@ var AdAccountDeliveryEstimate = function (_AbstractCrudObject) {
         thruplay: 'THRUPLAY',
         two_second_continuous_video_views: 'TWO_SECOND_CONTINUOUS_VIDEO_VIEWS',
         value: 'VALUE',
-        video_views: 'VIDEO_VIEWS'
+        visit_instagram_profile: 'VISIT_INSTAGRAM_PROFILE'
       });
     }
   }]);
@@ -21649,6 +20416,73 @@ var MinimumBudget = function (_AbstractCrudObject) {
     }
   }]);
   return MinimumBudget;
+}(AbstractCrudObject);
+
+/**
+ * Copyright (c) 2017-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ * 
+ */
+/**
+ * BusinessOwnedObjectOnBehalfOfRequest
+ * @extends AbstractCrudObject
+ * @see {@link https://developers.facebook.com/docs/marketing-api/}
+ */
+
+var BusinessOwnedObjectOnBehalfOfRequest = function (_AbstractCrudObject) {
+  inherits(BusinessOwnedObjectOnBehalfOfRequest, _AbstractCrudObject);
+
+  function BusinessOwnedObjectOnBehalfOfRequest() {
+    classCallCheck(this, BusinessOwnedObjectOnBehalfOfRequest);
+    return possibleConstructorReturn(this, (BusinessOwnedObjectOnBehalfOfRequest.__proto__ || Object.getPrototypeOf(BusinessOwnedObjectOnBehalfOfRequest)).apply(this, arguments));
+  }
+
+  createClass(BusinessOwnedObjectOnBehalfOfRequest, [{
+    key: 'delete',
+
+
+    // $FlowFixMe : Support Generic Types
+    value: function _delete(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      // $FlowFixMe : Support Generic Types
+      return get$1(BusinessOwnedObjectOnBehalfOfRequest.prototype.__proto__ || Object.getPrototypeOf(BusinessOwnedObjectOnBehalfOfRequest.prototype), 'delete', this).call(this, params);
+    }
+  }, {
+    key: 'get',
+    value: function get(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      // $FlowFixMe : Support Generic Types
+      return this.read(fields, params);
+    }
+  }], [{
+    key: 'Fields',
+    get: function get() {
+      return Object.freeze({
+        business_owned_object: 'business_owned_object',
+        id: 'id',
+        receiving_business: 'receiving_business',
+        requesting_business: 'requesting_business',
+        status: 'status'
+      });
+    }
+  }, {
+    key: 'Status',
+    get: function get() {
+      return Object.freeze({
+        approve: 'APPROVE',
+        decline: 'DECLINE',
+        expired: 'EXPIRED',
+        in_progress: 'IN_PROGRESS',
+        pending: 'PENDING'
+      });
+    }
+  }]);
+  return BusinessOwnedObjectOnBehalfOfRequest;
 }(AbstractCrudObject);
 
 /**
@@ -21824,7 +20658,6 @@ var ReachFrequencyPrediction = function (_AbstractCrudObject) {
         daily_impression_curve: 'daily_impression_curve',
         daily_impression_curve_map: 'daily_impression_curve_map',
         day_parting_schedule: 'day_parting_schedule',
-        demo_breakdown: 'demo_breakdown',
         destination_id: 'destination_id',
         end_time: 'end_time',
         expiration_time: 'expiration_time',
@@ -21837,10 +20670,8 @@ var ReachFrequencyPrediction = function (_AbstractCrudObject) {
         external_minimum_impression: 'external_minimum_impression',
         external_minimum_reach: 'external_minimum_reach',
         external_reach: 'external_reach',
-        external_values_breakdown: 'external_values_breakdown',
         feed_ratio_0000: 'feed_ratio_0000',
         frequency_cap: 'frequency_cap',
-        frequency_distribution: 'frequency_distribution',
         frequency_distribution_map: 'frequency_distribution_map',
         frequency_distribution_map_agg: 'frequency_distribution_map_agg',
         grp_audience_size: 'grp_audience_size',
@@ -21889,7 +20720,6 @@ var ReachFrequencyPrediction = function (_AbstractCrudObject) {
         timezone_id: 'timezone_id',
         timezone_name: 'timezone_name',
         topline_id: 'topline_id',
-        tv_viewer_cluster_map: 'tv_viewer_cluster_map',
         video_view_length_constraint: 'video_view_length_constraint',
         viewtag: 'viewtag'
       });
@@ -22024,18 +20854,10 @@ var SavedAudience = function (_AbstractCrudObject) {
   }
 
   createClass(SavedAudience, [{
-    key: 'getAdSets',
-    value: function getAdSets(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
+    key: 'delete',
 
-      return this.getEdge(AdSet, fields, params, fetchFirstPage, '/adsets');
-    }
 
     // $FlowFixMe : Support Generic Types
-
-  }, {
-    key: 'delete',
     value: function _delete(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
@@ -22213,6 +21035,7 @@ var AdAccountTargetingUnified = function (_AbstractCrudObject) {
         brand_safety_content_severity_levels: 'brand_safety_content_severity_levels',
         catalog_based_targeting: 'catalog_based_targeting',
         cities: 'cities',
+        city_keys: 'city_keys',
         college_years: 'college_years',
         conjunctive_user_adclusters: 'conjunctive_user_adclusters',
         connections: 'connections',
@@ -22270,6 +21093,7 @@ var AdAccountTargetingUnified = function (_AbstractCrudObject) {
         id: 'id',
         income: 'income',
         industries: 'industries',
+        instagram_hashtags: 'instagram_hashtags',
         instagram_positions: 'instagram_positions',
         instream_video_sponsorship_placements: 'instream_video_sponsorship_placements',
         interest_defaults_source: 'interest_defaults_source',
@@ -22297,11 +21121,13 @@ var AdAccountTargetingUnified = function (_AbstractCrudObject) {
         prospecting_audience: 'prospecting_audience',
         publisher_platforms: 'publisher_platforms',
         radius: 'radius',
+        region_keys: 'region_keys',
         regions: 'regions',
         relationship_statuses: 'relationship_statuses',
         rtb_flag: 'rtb_flag',
         site_category: 'site_category',
         targeting_optimization: 'targeting_optimization',
+        targeting_relaxation_types: 'targeting_relaxation_types',
         timezones: 'timezones',
         topic: 'topic',
         trending: 'trending',
@@ -22571,13 +21397,6 @@ var AdAccount = function (_AbstractCrudObject) {
       return this.getEdge(AbstractObject, fields, params, fetchFirstPage, '/adreportschedules');
     }
   }, {
-    key: 'createAdReportSchedule',
-    value: function createAdReportSchedule(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/adreportschedules', fields, params);
-    }
-  }, {
     key: 'getAdRulesHistory',
     value: function getAdRulesHistory(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -22599,13 +21418,6 @@ var AdAccount = function (_AbstractCrudObject) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
       return this.createEdge('/adrules_library', fields, params, AdRule);
-    }
-  }, {
-    key: 'deleteAds',
-    value: function deleteAds() {
-      var params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-
-      return get$1(AdAccount.prototype.__proto__ || Object.getPrototypeOf(AdAccount.prototype), 'deleteEdge', this).call(this, '/ads', params);
     }
   }, {
     key: 'getAds',
@@ -22804,33 +21616,11 @@ var AdAccount = function (_AbstractCrudObject) {
       return this.createEdge('/audiencereplace', fields, params);
     }
   }, {
-    key: 'createBatchReplace',
-    value: function createBatchReplace(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/batchreplace', fields, params);
-    }
-  }, {
-    key: 'createBatchUpload',
-    value: function createBatchUpload(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/batchupload', fields, params);
-    }
-  }, {
     key: 'createBlockListDraft',
     value: function createBlockListDraft(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
       return this.createEdge('/block_list_drafts', fields, params, AdAccount);
-    }
-  }, {
-    key: 'getBrandAudiences',
-    value: function getBrandAudiences(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(BrandAudience, fields, params, fetchFirstPage, '/brand_audiences');
     }
   }, {
     key: 'getBroadTargetingCategories',
@@ -22839,14 +21629,6 @@ var AdAccount = function (_AbstractCrudObject) {
       var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
 
       return this.getEdge(BroadTargetingCategories, fields, params, fetchFirstPage, '/broadtargetingcategories');
-    }
-  }, {
-    key: 'getBusinessProjects',
-    value: function getBusinessProjects(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(BusinessProject, fields, params, fetchFirstPage, '/businessprojects');
     }
   }, {
     key: 'deleteCampaigns',
@@ -22932,13 +21714,6 @@ var AdAccount = function (_AbstractCrudObject) {
       return this.createEdge('/customconversions', fields, params, CustomConversion);
     }
   }, {
-    key: 'createDeactivate',
-    value: function createDeactivate(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/deactivate', fields, params, AdAccount);
-    }
-  }, {
     key: 'getDeliveryEstimate',
     value: function getDeliveryEstimate(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -22953,13 +21728,6 @@ var AdAccount = function (_AbstractCrudObject) {
       var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
 
       return this.getEdge(AdSet, fields, params, fetchFirstPage, '/deprecatedtargetingadsets');
-    }
-  }, {
-    key: 'createEmailImport',
-    value: function createEmailImport(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/emailimport', fields, params);
     }
   }, {
     key: 'getGeneratePreviews',
@@ -23408,6 +22176,7 @@ var AdAccount = function (_AbstractCrudObject) {
         flight: 'FLIGHT',
         home_listing: 'HOME_LISTING',
         hotel: 'HOTEL',
+        location_based_item: 'LOCATION_BASED_ITEM',
         media_title: 'MEDIA_TITLE',
         offline_product: 'OFFLINE_PRODUCT',
         product: 'PRODUCT',
@@ -23847,7 +22616,9 @@ var AdAssetFeedSpec = function (_AbstractCrudObject) {
         autotranslate: 'autotranslate',
         bodies: 'bodies',
         call_to_action_types: 'call_to_action_types',
+        call_to_actions: 'call_to_actions',
         captions: 'captions',
+        carousels: 'carousels',
         descriptions: 'descriptions',
         groups: 'groups',
         images: 'images',
@@ -23878,6 +22649,7 @@ var AdAssetFeedSpec = function (_AbstractCrudObject) {
         find_a_group: 'FIND_A_GROUP',
         find_your_groups: 'FIND_YOUR_GROUPS',
         follow_news_storyline: 'FOLLOW_NEWS_STORYLINE',
+        follow_user: 'FOLLOW_USER',
         get_directions: 'GET_DIRECTIONS',
         get_offer: 'GET_OFFER',
         get_offer_view: 'GET_OFFER_VIEW',
@@ -23895,8 +22667,10 @@ var AdAssetFeedSpec = function (_AbstractCrudObject) {
         no_button: 'NO_BUTTON',
         open_link: 'OPEN_LINK',
         order_now: 'ORDER_NOW',
+        pay_to_access: 'PAY_TO_ACCESS',
         play_game: 'PLAY_GAME',
         record_now: 'RECORD_NOW',
+        request_time: 'REQUEST_TIME',
         say_thanks: 'SAY_THANKS',
         see_more: 'SEE_MORE',
         sell_now: 'SELL_NOW',
@@ -24411,6 +23185,7 @@ var AdCampaignActivity = function (_AbstractCrudObject) {
     key: 'BidStrategyNew',
     get: function get() {
       return Object.freeze({
+        cost_cap: 'COST_CAP',
         lowest_cost_without_cap: 'LOWEST_COST_WITHOUT_CAP',
         lowest_cost_with_bid_cap: 'LOWEST_COST_WITH_BID_CAP',
         target_cost: 'TARGET_COST'
@@ -24420,6 +23195,7 @@ var AdCampaignActivity = function (_AbstractCrudObject) {
     key: 'BidStrategyOld',
     get: function get() {
       return Object.freeze({
+        cost_cap: 'COST_CAP',
         lowest_cost_without_cap: 'LOWEST_COST_WITHOUT_CAP',
         lowest_cost_with_bid_cap: 'LOWEST_COST_WITH_BID_CAP',
         target_cost: 'TARGET_COST'
@@ -24437,8 +23213,7 @@ var AdCampaignActivity = function (_AbstractCrudObject) {
         offer_claims: 'OFFER_CLAIMS',
         page_likes: 'PAGE_LIKES',
         post_engagement: 'POST_ENGAGEMENT',
-        thruplay: 'THRUPLAY',
-        video_views: 'VIDEO_VIEWS'
+        thruplay: 'THRUPLAY'
       });
     }
   }, {
@@ -24453,8 +23228,7 @@ var AdCampaignActivity = function (_AbstractCrudObject) {
         offer_claims: 'OFFER_CLAIMS',
         page_likes: 'PAGE_LIKES',
         post_engagement: 'POST_ENGAGEMENT',
-        thruplay: 'THRUPLAY',
-        video_views: 'VIDEO_VIEWS'
+        thruplay: 'THRUPLAY'
       });
     }
   }, {
@@ -24485,7 +23259,7 @@ var AdCampaignActivity = function (_AbstractCrudObject) {
         thruplay: 'THRUPLAY',
         two_second_continuous_video_views: 'TWO_SECOND_CONTINUOUS_VIDEO_VIEWS',
         value: 'VALUE',
-        video_views: 'VIDEO_VIEWS'
+        visit_instagram_profile: 'VISIT_INSTAGRAM_PROFILE'
       });
     }
   }, {
@@ -24516,7 +23290,7 @@ var AdCampaignActivity = function (_AbstractCrudObject) {
         thruplay: 'THRUPLAY',
         two_second_continuous_video_views: 'TWO_SECOND_CONTINUOUS_VIDEO_VIEWS',
         value: 'VALUE',
-        video_views: 'VIDEO_VIEWS'
+        visit_instagram_profile: 'VISIT_INSTAGRAM_PROFILE'
       });
     }
   }]);
@@ -24801,10 +23575,8 @@ var AdCampaignLearningStageInfo = function (_AbstractCrudObject) {
       return Object.freeze({
         attribution_windows: 'attribution_windows',
         conversions: 'conversions',
-        exit_reason: 'exit_reason',
         last_sig_edit_ts: 'last_sig_edit_ts',
-        status: 'status',
-        types: 'types'
+        status: 'status'
       });
     }
   }]);
@@ -25116,6 +23888,7 @@ var AdCreativeLinkDataCallToAction = function (_AbstractCrudObject) {
         find_a_group: 'FIND_A_GROUP',
         find_your_groups: 'FIND_YOUR_GROUPS',
         follow_news_storyline: 'FOLLOW_NEWS_STORYLINE',
+        follow_user: 'FOLLOW_USER',
         get_directions: 'GET_DIRECTIONS',
         get_offer: 'GET_OFFER',
         get_offer_view: 'GET_OFFER_VIEW',
@@ -25133,8 +23906,10 @@ var AdCreativeLinkDataCallToAction = function (_AbstractCrudObject) {
         no_button: 'NO_BUTTON',
         open_link: 'OPEN_LINK',
         order_now: 'ORDER_NOW',
+        pay_to_access: 'PAY_TO_ACCESS',
         play_game: 'PLAY_GAME',
         record_now: 'RECORD_NOW',
+        request_time: 'REQUEST_TIME',
         say_thanks: 'SAY_THANKS',
         see_more: 'SEE_MORE',
         sell_now: 'SELL_NOW',
@@ -25447,8 +24222,10 @@ var AdCreativeLinkDataImageOverlaySpec = function (_AbstractCrudObject) {
         custom: 'custom',
         disclaimer: 'disclaimer',
         from_price: 'from_price',
+        guest_rating: 'guest_rating',
         percentage_off: 'percentage_off',
         price: 'price',
+        star_rating: 'star_rating',
         strikethrough_price: 'strikethrough_price'
       });
     }
@@ -25622,6 +24399,42 @@ var AdCreativePhotoData = function (_AbstractCrudObject) {
     }
   }]);
   return AdCreativePhotoData;
+}(AbstractCrudObject);
+
+/**
+ * Copyright (c) 2017-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ * 
+ */
+/**
+ * AdCreativePhotoDataMediaElements
+ * @extends AbstractCrudObject
+ * @see {@link https://developers.facebook.com/docs/marketing-api/}
+ */
+
+var AdCreativePhotoDataMediaElements = function (_AbstractCrudObject) {
+  inherits(AdCreativePhotoDataMediaElements, _AbstractCrudObject);
+
+  function AdCreativePhotoDataMediaElements() {
+    classCallCheck(this, AdCreativePhotoDataMediaElements);
+    return possibleConstructorReturn(this, (AdCreativePhotoDataMediaElements.__proto__ || Object.getPrototypeOf(AdCreativePhotoDataMediaElements)).apply(this, arguments));
+  }
+
+  createClass(AdCreativePhotoDataMediaElements, null, [{
+    key: 'Fields',
+    get: function get() {
+      return Object.freeze({
+        element_id: 'element_id',
+        element_type: 'element_type',
+        x: 'x',
+        y: 'y'
+      });
+    }
+  }]);
+  return AdCreativePhotoDataMediaElements;
 }(AbstractCrudObject);
 
 /**
@@ -25937,6 +24750,7 @@ var AdCreativeVideoData = function (_AbstractCrudObject) {
         branded_content_sponsor_page_id: 'branded_content_sponsor_page_id',
         call_to_action: 'call_to_action',
         collection_thumbnails: 'collection_thumbnails',
+        customization_rules_spec: 'customization_rules_spec',
         image_hash: 'image_hash',
         image_url: 'image_url',
         link_description: 'link_description',
@@ -25983,11 +24797,13 @@ var AdCustomizationRuleSpec = function (_AbstractCrudObject) {
         caption: 'caption',
         customization_spec: 'customization_spec',
         description: 'description',
+        image_hash: 'image_hash',
         link: 'link',
         message: 'message',
         name: 'name',
         priority: 'priority',
-        template_url_spec: 'template_url_spec'
+        template_url_spec: 'template_url_spec',
+        video_id: 'video_id'
       });
     }
   }]);
@@ -26397,17 +25213,6 @@ var AdReportSpec = function (_AbstractCrudObject) {
   }
 
   createClass(AdReportSpec, [{
-    key: 'delete',
-
-
-    // $FlowFixMe : Support Generic Types
-    value: function _delete(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return get$1(AdReportSpec.prototype.__proto__ || Object.getPrototypeOf(AdReportSpec.prototype), 'delete', this).call(this, params);
-    }
-  }, {
     key: 'get',
     value: function get(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -27094,6 +25899,7 @@ var AdgroupPlacementSpecificReviewFeedback = function (_AbstractCrudObject) {
         daily_deals_legacy: 'daily_deals_legacy',
         dpa: 'dpa',
         facebook: 'facebook',
+        facebook_pages_live_shopping: 'facebook_pages_live_shopping',
         instagram: 'instagram',
         instagram_shop: 'instagram_shop',
         lead_gen_honeypot: 'lead_gen_honeypot',
@@ -27294,6 +26100,53 @@ var AdsImageCrops = function (_AbstractCrudObject) {
  * 
  */
 /**
+ * AdsInterest
+ * @extends AbstractCrudObject
+ * @see {@link https://developers.facebook.com/docs/marketing-api/}
+ */
+
+var AdsInterest = function (_AbstractCrudObject) {
+  inherits(AdsInterest, _AbstractCrudObject);
+
+  function AdsInterest() {
+    classCallCheck(this, AdsInterest);
+    return possibleConstructorReturn(this, (AdsInterest.__proto__ || Object.getPrototypeOf(AdsInterest)).apply(this, arguments));
+  }
+
+  createClass(AdsInterest, [{
+    key: 'get',
+    value: function get(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      // $FlowFixMe : Support Generic Types
+      return this.read(fields, params);
+    }
+  }], [{
+    key: 'Fields',
+    get: function get() {
+      return Object.freeze({
+        audience_size: 'audience_size',
+        description: 'description',
+        disambiguation_category: 'disambiguation_category',
+        id: 'id',
+        name: 'name',
+        path: 'path',
+        topic: 'topic'
+      });
+    }
+  }]);
+  return AdsInterest;
+}(AbstractCrudObject);
+
+/**
+ * Copyright (c) 2017-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ * 
+ */
+/**
  * AdsOptimalDeliveryGrowthOpportunity
  * @extends AbstractCrudObject
  * @see {@link https://developers.facebook.com/docs/marketing-api/}
@@ -27468,55 +26321,6 @@ var AndroidAppLink = function (_AbstractCrudObject) {
     }
   }]);
   return AndroidAppLink;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
- * AppLinks
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var AppLinks = function (_AbstractCrudObject) {
-  inherits(AppLinks, _AbstractCrudObject);
-
-  function AppLinks() {
-    classCallCheck(this, AppLinks);
-    return possibleConstructorReturn(this, (AppLinks.__proto__ || Object.getPrototypeOf(AppLinks)).apply(this, arguments));
-  }
-
-  createClass(AppLinks, [{
-    key: 'get',
-    value: function get(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return this.read(fields, params);
-    }
-  }], [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        android: 'android',
-        id: 'id',
-        ios: 'ios',
-        ipad: 'ipad',
-        iphone: 'iphone',
-        web: 'web',
-        windows: 'windows',
-        windows_phone: 'windows_phone',
-        windows_universal: 'windows_universal'
-      });
-    }
-  }]);
-  return AppLinks;
 }(AbstractCrudObject);
 
 /**
@@ -27728,6 +26532,7 @@ var AudioCopyright = function (_AbstractCrudObject) {
         ownership_countries: 'ownership_countries',
         reference_file_status: 'reference_file_status',
         ridge_monitoring_status: 'ridge_monitoring_status',
+        tags: 'tags',
         update_time: 'update_time',
         whitelisted_fb_users: 'whitelisted_fb_users',
         whitelisted_ig_users: 'whitelisted_ig_users'
@@ -27771,6 +26576,56 @@ var BilledAmountDetails = function (_AbstractCrudObject) {
     }
   }]);
   return BilledAmountDetails;
+}(AbstractCrudObject);
+
+/**
+ * Copyright (c) 2017-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ * 
+ */
+/**
+ * BrandAudience
+ * @extends AbstractCrudObject
+ * @see {@link https://developers.facebook.com/docs/marketing-api/}
+ */
+
+var BrandAudience = function (_AbstractCrudObject) {
+  inherits(BrandAudience, _AbstractCrudObject);
+
+  function BrandAudience() {
+    classCallCheck(this, BrandAudience);
+    return possibleConstructorReturn(this, (BrandAudience.__proto__ || Object.getPrototypeOf(BrandAudience)).apply(this, arguments));
+  }
+
+  createClass(BrandAudience, [{
+    key: 'get',
+    value: function get(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      // $FlowFixMe : Support Generic Types
+      return this.read(fields, params);
+    }
+  }], [{
+    key: 'Fields',
+    get: function get() {
+      return Object.freeze({
+        account: 'account',
+        delivery_targeting: 'delivery_targeting',
+        description: 'description',
+        id: 'id',
+        name: 'name',
+        sentence_lines: 'sentence_lines',
+        status: 'status',
+        targeting: 'targeting',
+        time_created: 'time_created',
+        time_updated: 'time_updated'
+      });
+    }
+  }]);
+  return BrandAudience;
 }(AbstractCrudObject);
 
 /**
@@ -28059,6 +26914,42 @@ var CatalogBasedTargeting = function (_AbstractCrudObject) {
  * 
  */
 /**
+ * CatalogItemAppealStatus
+ * @extends AbstractCrudObject
+ * @see {@link https://developers.facebook.com/docs/marketing-api/}
+ */
+
+var CatalogItemAppealStatus = function (_AbstractCrudObject) {
+  inherits(CatalogItemAppealStatus, _AbstractCrudObject);
+
+  function CatalogItemAppealStatus() {
+    classCallCheck(this, CatalogItemAppealStatus);
+    return possibleConstructorReturn(this, (CatalogItemAppealStatus.__proto__ || Object.getPrototypeOf(CatalogItemAppealStatus)).apply(this, arguments));
+  }
+
+  createClass(CatalogItemAppealStatus, null, [{
+    key: 'Fields',
+    get: function get() {
+      return Object.freeze({
+        handle: 'handle',
+        item_id: 'item_id',
+        status: 'status',
+        use_cases: 'use_cases'
+      });
+    }
+  }]);
+  return CatalogItemAppealStatus;
+}(AbstractCrudObject);
+
+/**
+ * Copyright (c) 2017-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ * 
+ */
+/**
  * ChildEvent
  * @extends AbstractCrudObject
  * @see {@link https://developers.facebook.com/docs/marketing-api/}
@@ -28275,7 +27166,6 @@ var CopyrightReferenceContainer = function (_AbstractCrudObject) {
         copyright_creation_time: 'copyright_creation_time',
         download_hd_url: 'download_hd_url',
         duration_in_sec: 'duration_in_sec',
-        fingerprint_validity: 'fingerprint_validity',
         id: 'id',
         iswc: 'iswc',
         metadata: 'metadata',
@@ -28823,6 +27713,49 @@ var DestinationCatalogSettings = function (_AbstractCrudObject) {
     }
   }]);
   return DestinationCatalogSettings;
+}(AbstractCrudObject);
+
+/**
+ * Copyright (c) 2017-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ * 
+ */
+/**
+ * Domain
+ * @extends AbstractCrudObject
+ * @see {@link https://developers.facebook.com/docs/marketing-api/}
+ */
+
+var Domain = function (_AbstractCrudObject) {
+  inherits(Domain, _AbstractCrudObject);
+
+  function Domain() {
+    classCallCheck(this, Domain);
+    return possibleConstructorReturn(this, (Domain.__proto__ || Object.getPrototypeOf(Domain)).apply(this, arguments));
+  }
+
+  createClass(Domain, [{
+    key: 'get',
+    value: function get(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      // $FlowFixMe : Support Generic Types
+      return this.read(fields, params);
+    }
+  }], [{
+    key: 'Fields',
+    get: function get() {
+      return Object.freeze({
+        id: 'id',
+        name: 'name',
+        url: 'url'
+      });
+    }
+  }]);
+  return Domain;
 }(AbstractCrudObject);
 
 /**
@@ -29589,6 +28522,7 @@ var IGUser = function (_AbstractCrudObject) {
         mentioned_media: 'mentioned_media',
         name: 'name',
         profile_picture_url: 'profile_picture_url',
+        shopping_review_status: 'shopping_review_status',
         username: 'username',
         website: 'website'
       });
@@ -29903,50 +28837,6 @@ var LeadGenDraftQuestion = function (_AbstractCrudObject) {
  * 
  */
 /**
- * LeadGenFormPreviewDetails
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var LeadGenFormPreviewDetails = function (_AbstractCrudObject) {
-  inherits(LeadGenFormPreviewDetails, _AbstractCrudObject);
-
-  function LeadGenFormPreviewDetails() {
-    classCallCheck(this, LeadGenFormPreviewDetails);
-    return possibleConstructorReturn(this, (LeadGenFormPreviewDetails.__proto__ || Object.getPrototypeOf(LeadGenFormPreviewDetails)).apply(this, arguments));
-  }
-
-  createClass(LeadGenFormPreviewDetails, null, [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        call_to_action_title: 'call_to_action_title',
-        default_appointment_scheduling_inline_context: 'default_appointment_scheduling_inline_context',
-        default_thank_you_page: 'default_thank_you_page',
-        edit_text: 'edit_text',
-        email_inline_context_text: 'email_inline_context_text',
-        next_button_text: 'next_button_text',
-        personal_info_text: 'personal_info_text',
-        phone_number_inline_context_text: 'phone_number_inline_context_text',
-        review_your_info_text: 'review_your_info_text',
-        secure_sharing_text: 'secure_sharing_text',
-        slide_to_submit_text: 'slide_to_submit_text',
-        submit_button_text: 'submit_button_text'
-      });
-    }
-  }]);
-  return LeadGenFormPreviewDetails;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
  * LeadGenPostSubmissionCheckResult
  * @extends AbstractCrudObject
  * @see {@link https://developers.facebook.com/docs/marketing-api/}
@@ -30151,14 +29041,6 @@ var Link = function (_AbstractCrudObject) {
   }
 
   createClass(Link, [{
-    key: 'getComments',
-    value: function getComments(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(Comment, fields, params, fetchFirstPage, '/comments');
-    }
-  }, {
     key: 'createComment',
     value: function createComment(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -30522,6 +29404,7 @@ var MusicVideoCopyright = function (_AbstractCrudObject) {
         ownership_countries: 'ownership_countries',
         reference_file_status: 'reference_file_status',
         ridge_monitoring_status: 'ridge_monitoring_status',
+        tags: 'tags',
         update_time: 'update_time',
         video_asset: 'video_asset',
         whitelisted_fb_users: 'whitelisted_fb_users',
@@ -30568,6 +29451,49 @@ var NativeOfferDiscount = function (_AbstractCrudObject) {
     }
   }]);
   return NativeOfferDiscount;
+}(AbstractCrudObject);
+
+/**
+ * Copyright (c) 2017-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ * 
+ */
+/**
+ * OfflineTermsOfService
+ * @extends AbstractCrudObject
+ * @see {@link https://developers.facebook.com/docs/marketing-api/}
+ */
+
+var OfflineTermsOfService = function (_AbstractCrudObject) {
+  inherits(OfflineTermsOfService, _AbstractCrudObject);
+
+  function OfflineTermsOfService() {
+    classCallCheck(this, OfflineTermsOfService);
+    return possibleConstructorReturn(this, (OfflineTermsOfService.__proto__ || Object.getPrototypeOf(OfflineTermsOfService)).apply(this, arguments));
+  }
+
+  createClass(OfflineTermsOfService, [{
+    key: 'get',
+    value: function get(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      // $FlowFixMe : Support Generic Types
+      return this.read(fields, params);
+    }
+  }], [{
+    key: 'Fields',
+    get: function get() {
+      return Object.freeze({
+        accept_time: 'accept_time',
+        id: 'id',
+        signed_by_user: 'signed_by_user'
+      });
+    }
+  }]);
+  return OfflineTermsOfService;
 }(AbstractCrudObject);
 
 /**
@@ -30664,22 +29590,6 @@ var OpenGraphObject = function (_AbstractCrudObject) {
       var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
 
       return this.getEdge(Comment, fields, params, fetchFirstPage, '/comments');
-    }
-  }, {
-    key: 'getLikes',
-    value: function getLikes(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(Profile, fields, params, fetchFirstPage, '/likes');
-    }
-  }, {
-    key: 'getPicture',
-    value: function getPicture(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(ProfilePictureSource, fields, params, fetchFirstPage, '/picture');
     }
   }, {
     key: 'getReactions',
@@ -30886,75 +29796,6 @@ var PageAdminNote = function (_AbstractCrudObject) {
  * 
  */
 /**
- * PageBroadcast
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var PageBroadcast = function (_AbstractCrudObject) {
-  inherits(PageBroadcast, _AbstractCrudObject);
-
-  function PageBroadcast() {
-    classCallCheck(this, PageBroadcast);
-    return possibleConstructorReturn(this, (PageBroadcast.__proto__ || Object.getPrototypeOf(PageBroadcast)).apply(this, arguments));
-  }
-
-  createClass(PageBroadcast, [{
-    key: 'getInsights',
-    value: function getInsights(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(InsightsResult, fields, params, fetchFirstPage, '/insights');
-    }
-  }, {
-    key: 'get',
-    value: function get(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return this.read(fields, params);
-    }
-
-    // $FlowFixMe : Support Generic Types
-
-  }, {
-    key: 'update',
-    value: function update(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return get$1(PageBroadcast.prototype.__proto__ || Object.getPrototypeOf(PageBroadcast.prototype), 'update', this).call(this, params);
-    }
-  }], [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        id: 'id',
-        scheduled_time: 'scheduled_time',
-        status: 'status'
-      });
-    }
-  }, {
-    key: 'Operation',
-    get: function get() {
-      return Object.freeze({
-        cancel: 'CANCEL'
-      });
-    }
-  }]);
-  return PageBroadcast;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
  * PageCategory
  * @extends AbstractCrudObject
  * @see {@link https://developers.facebook.com/docs/marketing-api/}
@@ -31037,51 +29878,6 @@ var PageChangeProposal = function (_AbstractCrudObject) {
     }
   }]);
   return PageChangeProposal;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
- * PageLabel
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var PageLabel = function (_AbstractCrudObject) {
-  inherits(PageLabel, _AbstractCrudObject);
-
-  function PageLabel() {
-    classCallCheck(this, PageLabel);
-    return possibleConstructorReturn(this, (PageLabel.__proto__ || Object.getPrototypeOf(PageLabel)).apply(this, arguments));
-  }
-
-  createClass(PageLabel, [{
-    key: 'get',
-    value: function get(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return this.read(fields, params);
-    }
-  }], [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        creation_time: 'creation_time',
-        creator_id: 'creator_id',
-        from: 'from',
-        id: 'id',
-        name: 'name'
-      });
-    }
-  }]);
-  return PageLabel;
 }(AbstractCrudObject);
 
 /**
@@ -31578,68 +30374,29 @@ var ProductFeedMissingFeedItemReplacement = function (_AbstractCrudObject) {
  * 
  */
 /**
- * ProductFeedSchedule
+ * ProductFeedUploadDiagnostics
  * @extends AbstractCrudObject
  * @see {@link https://developers.facebook.com/docs/marketing-api/}
  */
 
-var ProductFeedSchedule = function (_AbstractCrudObject) {
-  inherits(ProductFeedSchedule, _AbstractCrudObject);
+var ProductFeedUploadDiagnostics = function (_AbstractCrudObject) {
+  inherits(ProductFeedUploadDiagnostics, _AbstractCrudObject);
 
-  function ProductFeedSchedule() {
-    classCallCheck(this, ProductFeedSchedule);
-    return possibleConstructorReturn(this, (ProductFeedSchedule.__proto__ || Object.getPrototypeOf(ProductFeedSchedule)).apply(this, arguments));
+  function ProductFeedUploadDiagnostics() {
+    classCallCheck(this, ProductFeedUploadDiagnostics);
+    return possibleConstructorReturn(this, (ProductFeedUploadDiagnostics.__proto__ || Object.getPrototypeOf(ProductFeedUploadDiagnostics)).apply(this, arguments));
   }
 
-  createClass(ProductFeedSchedule, [{
-    key: 'get',
-    value: function get(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return this.read(fields, params);
-    }
-  }], [{
+  createClass(ProductFeedUploadDiagnostics, null, [{
     key: 'Fields',
     get: function get() {
       return Object.freeze({
-        day_of_month: 'day_of_month',
-        day_of_week: 'day_of_week',
-        hour: 'hour',
-        interval: 'interval',
-        interval_count: 'interval_count',
-        minute: 'minute',
-        timezone: 'timezone',
-        url: 'url',
-        username: 'username',
-        id: 'id'
-      });
-    }
-  }, {
-    key: 'DayOfWeek',
-    get: function get() {
-      return Object.freeze({
-        friday: 'FRIDAY',
-        monday: 'MONDAY',
-        saturday: 'SATURDAY',
-        sunday: 'SUNDAY',
-        thursday: 'THURSDAY',
-        tuesday: 'TUESDAY',
-        wednesday: 'WEDNESDAY'
-      });
-    }
-  }, {
-    key: 'Interval',
-    get: function get() {
-      return Object.freeze({
-        daily: 'DAILY',
-        hourly: 'HOURLY',
-        monthly: 'MONTHLY',
-        weekly: 'WEEKLY'
+        last_modified_time: 'last_modified_time',
+        report_url: 'report_url'
       });
     }
   }]);
-  return ProductFeedSchedule;
+  return ProductFeedUploadDiagnostics;
 }(AbstractCrudObject);
 
 /**
@@ -31810,12 +30567,6 @@ var ReachFrequencyActivity = function (_AbstractCrudObject) {
         campaign_active: 'campaign_active',
         campaign_started: 'campaign_started',
         creative_uploaded: 'creative_uploaded',
-        delivered_budget: 'delivered_budget',
-        delivered_daily_grp: 'delivered_daily_grp',
-        delivered_daily_impression: 'delivered_daily_impression',
-        delivered_impression: 'delivered_impression',
-        delivered_reach: 'delivered_reach',
-        delivered_total_impression: 'delivered_total_impression',
         io_approved: 'io_approved',
         sf_link: 'sf_link'
       });
@@ -32007,40 +30758,6 @@ var ReachFrequencyEstimatesCurve = function (_AbstractCrudObject) {
     }
   }]);
   return ReachFrequencyEstimatesCurve;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
- * ReachFrequencyEstimatesDemoBreakdown
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var ReachFrequencyEstimatesDemoBreakdown = function (_AbstractCrudObject) {
-  inherits(ReachFrequencyEstimatesDemoBreakdown, _AbstractCrudObject);
-
-  function ReachFrequencyEstimatesDemoBreakdown() {
-    classCallCheck(this, ReachFrequencyEstimatesDemoBreakdown);
-    return possibleConstructorReturn(this, (ReachFrequencyEstimatesDemoBreakdown.__proto__ || Object.getPrototypeOf(ReachFrequencyEstimatesDemoBreakdown)).apply(this, arguments));
-  }
-
-  createClass(ReachFrequencyEstimatesDemoBreakdown, null, [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        female: 'female',
-        male: 'male'
-      });
-    }
-  }]);
-  return ReachFrequencyEstimatesDemoBreakdown;
 }(AbstractCrudObject);
 
 /**
@@ -33678,51 +32395,6 @@ var ValueBasedEligibleSource = function (_AbstractCrudObject) {
  * 
  */
 /**
- * VaultDeletedImage
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var VaultDeletedImage = function (_AbstractCrudObject) {
-  inherits(VaultDeletedImage, _AbstractCrudObject);
-
-  function VaultDeletedImage() {
-    classCallCheck(this, VaultDeletedImage);
-    return possibleConstructorReturn(this, (VaultDeletedImage.__proto__ || Object.getPrototypeOf(VaultDeletedImage)).apply(this, arguments));
-  }
-
-  createClass(VaultDeletedImage, [{
-    key: 'get',
-    value: function get(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return this.read(fields, params);
-    }
-  }], [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        client_image_hash: 'client_image_hash',
-        date_taken: 'date_taken',
-        id: 'id',
-        owner: 'owner',
-        remote_id: 'remote_id'
-      });
-    }
-  }]);
-  return VaultDeletedImage;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
  * VideoCopyrightConditionGroup
  * @extends AbstractCrudObject
  * @see {@link https://developers.facebook.com/docs/marketing-api/}
@@ -33841,38 +32513,12 @@ var VideoGameShow = function (_AbstractCrudObject) {
   }
 
   createClass(VideoGameShow, [{
-    key: 'getQuestions',
-    value: function getQuestions(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(AbstractObject, fields, params, fetchFirstPage, '/questions');
-    }
-  }, {
-    key: 'createQuestion',
-    value: function createQuestion(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/questions', fields, params);
-    }
-  }, {
     key: 'get',
     value: function get(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
       // $FlowFixMe : Support Generic Types
       return this.read(fields, params);
-    }
-
-    // $FlowFixMe : Support Generic Types
-
-  }, {
-    key: 'update',
-    value: function update(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return get$1(VideoGameShow.prototype.__proto__ || Object.getPrototypeOf(VideoGameShow.prototype), 'update', this).call(this, params);
     }
   }], [{
     key: 'Fields',
@@ -33883,14 +32529,6 @@ var VideoGameShow = function (_AbstractCrudObject) {
         game_type: 'game_type',
         id: 'id',
         start_time: 'start_time'
-      });
-    }
-  }, {
-    key: 'Action',
-    get: function get() {
-      return Object.freeze({
-        end_game: 'END_GAME',
-        start_game: 'START_GAME'
       });
     }
   }]);
@@ -34027,14 +32665,6 @@ var WhatsAppBusinessAccount = function (_AbstractCrudObject) {
   }
 
   createClass(WhatsAppBusinessAccount, [{
-    key: 'getAssignedUsers',
-    value: function getAssignedUsers(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(AssignedUser, fields, params, fetchFirstPage, '/assigned_users');
-    }
-  }, {
     key: 'deleteMessageTemplates',
     value: function deleteMessageTemplates() {
       var params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
@@ -34078,9 +32708,7 @@ var WhatsAppBusinessAccount = function (_AbstractCrudObject) {
       return Object.freeze({
         analytics: 'analytics',
         currency: 'currency',
-        eligible_for_sending_notifications: 'eligible_for_sending_notifications',
         id: 'id',
-        ineligible_for_sending_notifications_reason: 'ineligible_for_sending_notifications_reason',
         message_template_namespace: 'message_template_namespace',
         name: 'name',
         on_behalf_of_business_info: 'on_behalf_of_business_info',
