@@ -10,9 +10,7 @@ import {AbstractCrudObject} from './../abstract-crud-object';
 import AbstractObject from './../abstract-object';
 import Cursor from './../cursor';
 import AdStudyCell from './ad-study-cell';
-import AdsTALHealthCheckError from './ads-tal-health-check-error';
 import AdStudyObjective from './ad-study-objective';
-import User from './user';
 
 /**
  * AdStudy
@@ -43,6 +41,7 @@ export default class AdStudy extends AbstractCrudObject {
   static get Type (): Object {
     return Object.freeze({
       continuous_lift_config: 'CONTINUOUS_LIFT_CONFIG',
+      geo_lift: 'GEO_LIFT',
       lift: 'LIFT',
       split_test: 'SPLIT_TEST',
     });
@@ -55,16 +54,6 @@ export default class AdStudy extends AbstractCrudObject {
       params,
       fetchFirstPage,
       '/cells'
-    );
-  }
-
-  getHealthCheckErrors (fields: Array<string>, params: Object = {}, fetchFirstPage: boolean = true): Cursor | Promise<*> {
-    return this.getEdge(
-      AdsTALHealthCheckError,
-      fields,
-      params,
-      fetchFirstPage,
-      '/health_check_errors'
     );
   }
 
@@ -84,16 +73,6 @@ export default class AdStudy extends AbstractCrudObject {
       fields,
       params,
       AdStudyObjective
-    );
-  }
-
-  getViewers (fields: Array<string>, params: Object = {}, fetchFirstPage: boolean = true): Cursor | Promise<*> {
-    return this.getEdge(
-      User,
-      fields,
-      params,
-      fetchFirstPage,
-      '/viewers'
     );
   }
 
