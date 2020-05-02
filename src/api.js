@@ -15,7 +15,7 @@ import CrashReporter from './crash-reporter';
  * Facebook Ads API
  */
 export default class FacebookAdsApi {
-  _proxy: string;
+  _extra: object;
   _debug: boolean;
   _showHeader: boolean;
   accessToken: string;
@@ -32,12 +32,12 @@ export default class FacebookAdsApi {
     return 'https://graph-video.facebook.com';
   }
 
-  static getProxy () {
-    return this._proxy;
+  static getExtra () {
+    return this._extra;
   }
 
-  static setProxy (proxy: string = '') {
-    this._proxy = proxy;
+  static setExtra (extra: object = {}) {
+    this._extra = extra;
   }
 
   /**
@@ -63,9 +63,9 @@ export default class FacebookAdsApi {
    * @param  {String} [locale]
    * @return {FacebookAdsApi}
    */
-  static init (accessToken: string, locale: string = 'en_US', crash_log: bool = true, proxy: string = '') {
+  static init (accessToken: string, locale: string = 'en_US', crash_log: bool = true, extra: object = {}) {
     const api = new this(accessToken, locale, crash_log);
-    this.setProxy(proxy)
+    this.setExtra(extra)
     this.setDefaultApi(api);
     return api;
   }

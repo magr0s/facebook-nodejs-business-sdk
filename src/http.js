@@ -98,11 +98,18 @@ export default class Http {
     useMultipartFormData: Boolean = false,
     showHeader: Boolean = false,
   ): Promise<*> {
+    const {
+      proxy,
+      agent
+    } = Api.getExtra()
+
     const options = {
       method: method,
       uri: url,
       json: !useMultipartFormData,
-      headers: { 'User-Agent': `fbbizsdk-nodejs-${Api.VERSION}` },
+      headers: { 
+        'User-Agent': agent || `fbbizsdk-nodejs-${Api.VERSION}` 
+      },
       body: Object,
       resolveWithFullResponse: showHeader,
     };
@@ -120,8 +127,6 @@ export default class Http {
       options.formData = Object.assign(data, files);
       delete options.body;
     }
-
-    const proxy = Api.getProxy();
 
     if (proxy) {
       options.proxy = proxy;
