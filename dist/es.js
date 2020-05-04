@@ -267,11 +267,17 @@ var Http = function () {
       var useMultipartFormData = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : false;
       var showHeader = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : false;
 
+      var _Api$getExtra = FacebookAdsApi.getExtra(),
+          proxy = _Api$getExtra.proxy,
+          agent = _Api$getExtra.agent;
+
       var options = {
         method: method,
         uri: url,
         json: !useMultipartFormData,
-        headers: { 'User-Agent': 'fbbizsdk-nodejs-' + FacebookAdsApi.VERSION },
+        headers: {
+          'User-Agent': agent || 'fbbizsdk-nodejs-' + FacebookAdsApi.VERSION
+        },
         body: Object,
         resolveWithFullResponse: showHeader
       };
@@ -289,8 +295,6 @@ var Http = function () {
         options.formData = Object.assign(data, files);
         delete options.body;
       }
-
-      var proxy = FacebookAdsApi.getProxy();
 
       if (proxy) {
         options.proxy = proxy;
@@ -515,16 +519,16 @@ var privateMethods = {
 
 var FacebookAdsApi = function () {
   createClass(FacebookAdsApi, null, [{
-    key: 'getProxy',
-    value: function getProxy() {
-      return this._proxy;
+    key: 'getExtra',
+    value: function getExtra() {
+      return this._extra;
     }
   }, {
-    key: 'setProxy',
-    value: function setProxy() {
-      var proxy = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '';
+    key: 'setExtra',
+    value: function setExtra() {
+      var extra = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
 
-      this._proxy = proxy;
+      this._extra = extra;
     }
 
     /**
@@ -657,10 +661,10 @@ var FacebookAdsApi = function () {
     value: function init(accessToken) {
       var locale = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 'en_US';
       var crash_log = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-      var proxy = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : '';
+      var extra = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {};
 
       var api = new this(accessToken, locale, crash_log);
-      this.setProxy(proxy);
+      this.setExtra(extra);
       this.setDefaultApi(api);
       return api;
     }
