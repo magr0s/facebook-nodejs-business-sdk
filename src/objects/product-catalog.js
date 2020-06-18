@@ -40,7 +40,7 @@ export default class ProductCatalog extends AbstractCrudObject {
   static get Fields () {
     return Object.freeze({
       business: 'business',
-      cpas_parent_catalog_settings: 'cpas_parent_catalog_settings',
+      commerce_merchant_settings: 'commerce_merchant_settings',
       da_display_settings: 'da_display_settings',
       default_image_url: 'default_image_url',
       fallback_image_url: 'fallback_image_url',
@@ -63,6 +63,7 @@ export default class ProductCatalog extends AbstractCrudObject {
       home_listings: 'home_listings',
       hotels: 'hotels',
       jobs: 'jobs',
+      local_service_businesses: 'local_service_businesses',
       offer_items: 'offer_items',
       offline_commerce: 'offline_commerce',
       ticketed_experiences: 'ticketed_experiences',
@@ -320,6 +321,15 @@ export default class ProductCatalog extends AbstractCrudObject {
   createItemsBatch (fields: Array<string>, params: Object = {}): Promise<ProductCatalog> {
     return this.createEdge(
       '/items_batch',
+      fields,
+      params,
+      ProductCatalog
+    );
+  }
+
+  createOnsiteCommerceMerchant (fields: Array<string>, params: Object = {}): Promise<ProductCatalog> {
+    return this.createEdge(
+      '/onsite_commerce_merchant',
       fields,
       params,
       ProductCatalog

@@ -64,6 +64,7 @@ export { default as AdCampaignLearningStageInfo } from './../src/objects/ad-camp
 export { default as AdCampaignOptimizationEvent } from './../src/objects/ad-campaign-optimization-event';
 export { default as AdCampaignPacedBidInfo } from './../src/objects/ad-campaign-paced-bid-info';
 export { default as AdCreative } from './../src/objects/ad-creative';
+export { default as AdCreativeAdDisclaimer } from './../src/objects/ad-creative-ad-disclaimer';
 export { default as AdCreativeCollectionThumbnailInfo } from './../src/objects/ad-creative-collection-thumbnail-info';
 export { default as AdCreativeInsights } from './../src/objects/ad-creative-insights';
 export { default as AdCreativeInteractiveComponentsSpec } from './../src/objects/ad-creative-interactive-components-spec';
@@ -159,6 +160,7 @@ export { default as BrandSafetyBlockListUsage } from './../src/objects/brand-saf
 export { default as BroadTargetingCategories } from './../src/objects/broad-targeting-categories';
 export { default as Business } from './../src/objects/business';
 export { default as BusinessAdAccountRequest } from './../src/objects/business-ad-account-request';
+export { default as BusinessAgreement } from './../src/objects/business-agreement';
 export { default as BusinessApplicationRequest } from './../src/objects/business-application-request';
 export { default as BusinessAssetGroup } from './../src/objects/business-asset-group';
 export { default as BusinessAssetSharingAgreement } from './../src/objects/business-asset-sharing-agreement';
@@ -180,6 +182,7 @@ export { default as CanvasAdSettings } from './../src/objects/canvas-ad-settings
 export { default as CanvasBodyElement } from './../src/objects/canvas-body-element';
 export { default as CanvasCollectionThumbnail } from './../src/objects/canvas-collection-thumbnail';
 export { default as CatalogBasedTargeting } from './../src/objects/catalog-based-targeting';
+export { default as CatalogItemAppLinks } from './../src/objects/catalog-item-app-links';
 export { default as CatalogItemAppealStatus } from './../src/objects/catalog-item-appeal-status';
 export { default as CheckBatchRequestStatus } from './../src/objects/check-batch-request-status';
 export { default as ChildEvent } from './../src/objects/child-event';
@@ -187,6 +190,11 @@ export { default as ClientTransparencyStatus } from './../src/objects/client-tra
 export { default as CollaborativeAdsPartnerInfoListItem } from './../src/objects/collaborative-ads-partner-info-list-item';
 export { default as CollaborativeAdsShareSettings } from './../src/objects/collaborative-ads-share-settings';
 export { default as Comment } from './../src/objects/comment';
+export { default as CommerceMerchantSettings } from './../src/objects/commerce-merchant-settings';
+export { default as CommerceMerchantSettingsSetupStatus } from './../src/objects/commerce-merchant-settings-setup-status';
+export { default as CommerceOrder } from './../src/objects/commerce-order';
+export { default as CommerceOrderTransactionDetail } from './../src/objects/commerce-order-transaction-detail';
+export { default as CommercePayout } from './../src/objects/commerce-payout';
 export { default as CommerceSettings } from './../src/objects/commerce-settings';
 export { default as ContentDeliveryReport } from './../src/objects/content-delivery-report';
 export { default as ConversionActionQuery } from './../src/objects/conversion-action-query';
@@ -200,7 +208,6 @@ export { default as CurrencyAmount } from './../src/objects/currency-amount';
 export { default as CustomAudience } from './../src/objects/custom-audience';
 export { default as CustomAudienceAdAccount } from './../src/objects/custom-audience-ad-account';
 export { default as CustomAudienceDataSource } from './../src/objects/custom-audience-data-source';
-export { default as CustomAudiencePrefillState } from './../src/objects/custom-audience-prefill-state';
 export { default as CustomAudienceSession } from './../src/objects/custom-audience-session';
 export { default as CustomAudienceSharingStatus } from './../src/objects/custom-audience-sharing-status';
 export { default as CustomAudienceStatus } from './../src/objects/custom-audience-status';
@@ -289,7 +296,6 @@ export { default as OfflineConversionDataSet } from './../src/objects/offline-co
 export { default as OfflineTermsOfService } from './../src/objects/offline-terms-of-service';
 export { default as OffsitePixel } from './../src/objects/offsite-pixel';
 export { default as OpenGraphContext } from './../src/objects/open-graph-context';
-export { default as OpenGraphObject } from './../src/objects/open-graph-object';
 export { default as OracleTransaction } from './../src/objects/oracle-transaction';
 export { default as OutcomePredictionPoint } from './../src/objects/outcome-prediction-point';
 export { default as Page } from './../src/objects/page';
@@ -334,7 +340,7 @@ export { default as ProductFeedRule } from './../src/objects/product-feed-rule';
 export { default as ProductFeedRuleSuggestion } from './../src/objects/product-feed-rule-suggestion';
 export { default as ProductFeedSchedule } from './../src/objects/product-feed-schedule';
 export { default as ProductFeedUpload } from './../src/objects/product-feed-upload';
-export { default as ProductFeedUploadDiagnostics } from './../src/objects/product-feed-upload-diagnostics';
+export { default as ProductFeedUploadDiagnosticsReport } from './../src/objects/product-feed-upload-diagnostics-report';
 export { default as ProductFeedUploadError } from './../src/objects/product-feed-upload-error';
 export { default as ProductFeedUploadErrorReport } from './../src/objects/product-feed-upload-error-report';
 export { default as ProductFeedUploadErrorSample } from './../src/objects/product-feed-upload-error-sample';
@@ -360,7 +366,6 @@ export { default as ReachFrequencySpec } from './../src/objects/reach-frequency-
 export { default as ReadOnlyAnalyticsUserPropertyConfig } from './../src/objects/read-only-analytics-user-property-config';
 export { default as Recommendation } from './../src/objects/recommendation';
 export { default as Referral } from './../src/objects/referral';
-export { default as RequestHistory } from './../src/objects/request-history';
 export { default as RevSharePolicy } from './../src/objects/rev-share-policy';
 export { default as RichMediaElement } from './../src/objects/rich-media-element';
 export { default as SavedAudience } from './../src/objects/saved-audience';
@@ -414,7 +419,6 @@ export { default as VideoCopyrightConditionGroup } from './../src/objects/video-
 export { default as VideoCopyrightGeoGate } from './../src/objects/video-copyright-geo-gate';
 export { default as VideoCopyrightRule } from './../src/objects/video-copyright-rule';
 export { default as VideoCopyrightSegment } from './../src/objects/video-copyright-segment';
-export { default as VideoGameShow } from './../src/objects/video-game-show';
 export { default as VideoList } from './../src/objects/video-list';
 export { default as VideoPoll } from './../src/objects/video-poll';
 export { default as VideoThumbnail } from './../src/objects/video-thumbnail';

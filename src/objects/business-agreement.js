@@ -7,32 +7,32 @@
  * @flow
  */
 import {AbstractCrudObject} from './../abstract-crud-object';
-import AbstractObject from './../abstract-object';
 
 /**
- * StoreCatalogSettings
+ * BusinessAgreement
  * @extends AbstractCrudObject
  * @see {@link https://developers.facebook.com/docs/marketing-api/}
  */
-export default class StoreCatalogSettings extends AbstractCrudObject {
+export default class BusinessAgreement extends AbstractCrudObject {
   static get Fields () {
     return Object.freeze({
       id: 'id',
-      page: 'page',
+      request_status: 'request_status',
     });
   }
 
-
-  // $FlowFixMe : Support Generic Types
-  delete (fields: Array<string>, params: Object = {}): AbstractObject {
-    // $FlowFixMe : Support Generic Types
-    return super.delete(
-      params
-    );
+  static get RequestStatus (): Object {
+    return Object.freeze({
+      approve: 'APPROVE',
+      decline: 'DECLINE',
+      expired: 'EXPIRED',
+      in_progress: 'IN_PROGRESS',
+      pending: 'PENDING',
+    });
   }
 
   
-  get (fields: Array<string>, params: Object = {}): StoreCatalogSettings {
+  get (fields: Array<string>, params: Object = {}): BusinessAgreement {
     // $FlowFixMe : Support Generic Types
     return this.read(
       fields,
@@ -41,7 +41,7 @@ export default class StoreCatalogSettings extends AbstractCrudObject {
   }
 
   // $FlowFixMe : Support Generic Types
-  update (fields: Array<string>, params: Object = {}): StoreCatalogSettings {
+  update (fields: Array<string>, params: Object = {}): BusinessAgreement {
     // $FlowFixMe : Support Generic Types
     return super.update(
       params

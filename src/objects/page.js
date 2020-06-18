@@ -18,6 +18,10 @@ import PageCallToAction from './page-call-to-action';
 import CanvasBodyElement from './canvas-body-element';
 import Canvas from './canvas';
 import URL from './url';
+import CommerceMerchantSettings from './commerce-merchant-settings';
+import CommerceOrder from './commerce-order';
+import CommercePayout from './commerce-payout';
+import CommerceOrderTransactionDetail from './commerce-order-transaction-detail';
 import UnifiedThread from './unified-thread';
 import PageUserMessageThreadLabel from './page-user-message-thread-label';
 import CustomUserSettings from './custom-user-settings';
@@ -45,10 +49,10 @@ import User from './user';
 import RTBDynamicPost from './rtb-dynamic-post';
 import Application from './application';
 import PageSettings from './page-settings';
+import CommerceMerchantSettingsSetupStatus from './commerce-merchant-settings-setup-status';
 import Tab from './tab';
 import PageThreadOwner from './page-thread-owner';
 import EventTour from './event-tour';
-import PageUpcomingChange from './page-upcoming-change';
 import VideoCopyrightRule from './video-copyright-rule';
 import VideoCopyright from './video-copyright';
 import VideoList from './video-list';
@@ -469,6 +473,7 @@ export default class Page extends AbstractCrudObject {
       general_manager: 'general_manager',
       hometown: 'hometown',
       hours: 'hours',
+      inbox_labels: 'inbox_labels',
       invoice_access_invoice_change: 'invoice_access_invoice_change',
       invoice_access_onboarding_status_active: 'invoice_access_onboarding_status_active',
       leadgen: 'leadgen',
@@ -489,6 +494,7 @@ export default class Page extends AbstractCrudObject {
       messaging_appointments: 'messaging_appointments',
       messaging_checkout_updates: 'messaging_checkout_updates',
       messaging_direct_sends: 'messaging_direct_sends',
+      messaging_fblogin_account_linking: 'messaging_fblogin_account_linking',
       messaging_game_plays: 'messaging_game_plays',
       messaging_handovers: 'messaging_handovers',
       messaging_optins: 'messaging_optins',
@@ -552,6 +558,15 @@ export default class Page extends AbstractCrudObject {
     });
   }
 
+  createAcknowledgeOrder (fields: Array<string>, params: Object = {}): Promise<Page> {
+    return this.createEdge(
+      '/acknowledge_orders',
+      fields,
+      params,
+      Page
+    );
+  }
+
   getAdsPosts (fields: Array<string>, params: Object = {}, fetchFirstPage: boolean = true): Cursor | Promise<*> {
     return this.getEdge(
       PagePost,
@@ -595,15 +610,6 @@ export default class Page extends AbstractCrudObject {
       params,
       fetchFirstPage,
       '/albums'
-    );
-  }
-
-  createAlbum (fields: Array<string>, params: Object = {}): Promise<Album> {
-    return this.createEdge(
-      '/albums',
-      fields,
-      params,
-      Album
     );
   }
 
@@ -733,6 +739,46 @@ export default class Page extends AbstractCrudObject {
     );
   }
 
+  getCommerceMerchantSettings (fields: Array<string>, params: Object = {}, fetchFirstPage: boolean = true): Cursor | Promise<*> {
+    return this.getEdge(
+      CommerceMerchantSettings,
+      fields,
+      params,
+      fetchFirstPage,
+      '/commerce_merchant_settings'
+    );
+  }
+
+  getCommerceOrders (fields: Array<string>, params: Object = {}, fetchFirstPage: boolean = true): Cursor | Promise<*> {
+    return this.getEdge(
+      CommerceOrder,
+      fields,
+      params,
+      fetchFirstPage,
+      '/commerce_orders'
+    );
+  }
+
+  getCommercePayouts (fields: Array<string>, params: Object = {}, fetchFirstPage: boolean = true): Cursor | Promise<*> {
+    return this.getEdge(
+      CommercePayout,
+      fields,
+      params,
+      fetchFirstPage,
+      '/commerce_payouts'
+    );
+  }
+
+  getCommerceTransactions (fields: Array<string>, params: Object = {}, fetchFirstPage: boolean = true): Cursor | Promise<*> {
+    return this.getEdge(
+      CommerceOrderTransactionDetail,
+      fields,
+      params,
+      fetchFirstPage,
+      '/commerce_transactions'
+    );
+  }
+
   getConversations (fields: Array<string>, params: Object = {}, fetchFirstPage: boolean = true): Cursor | Promise<*> {
     return this.getEdge(
       UnifiedThread,
@@ -824,16 +870,6 @@ export default class Page extends AbstractCrudObject {
       params,
       fetchFirstPage,
       '/events'
-    );
-  }
-
-  getFeaturedVideosCollection (fields: Array<string>, params: Object = {}, fetchFirstPage: boolean = true): Cursor | Promise<*> {
-    return this.getEdge(
-      AdVideo,
-      fields,
-      params,
-      fetchFirstPage,
-      '/featured_videos_collection'
     );
   }
 
@@ -1271,15 +1307,6 @@ export default class Page extends AbstractCrudObject {
     );
   }
 
-  createPromotion (fields: Array<string>, params: Object = {}): Promise<AbstractObject> {
-    return this.createEdge(
-      '/promotions',
-      fields,
-      params,
-      
-    );
-  }
-
   getPublishedPosts (fields: Array<string>, params: Object = {}, fetchFirstPage: boolean = true): Cursor | Promise<*> {
     return this.getEdge(
       PagePost,
@@ -1365,6 +1392,16 @@ export default class Page extends AbstractCrudObject {
       fields,
       params,
       Page
+    );
+  }
+
+  getShopSetupStatus (fields: Array<string>, params: Object = {}, fetchFirstPage: boolean = true): Cursor | Promise<*> {
+    return this.getEdge(
+      CommerceMerchantSettingsSetupStatus,
+      fields,
+      params,
+      fetchFirstPage,
+      '/shop_setup_status'
     );
   }
 
@@ -1494,16 +1531,6 @@ export default class Page extends AbstractCrudObject {
     );
   }
 
-  getUpcomingChanges (fields: Array<string>, params: Object = {}, fetchFirstPage: boolean = true): Cursor | Promise<*> {
-    return this.getEdge(
-      PageUpcomingChange,
-      fields,
-      params,
-      fetchFirstPage,
-      '/upcoming_changes'
-    );
-  }
-
   getVideoCopyrightRules (fields: Array<string>, params: Object = {}, fetchFirstPage: boolean = true): Cursor | Promise<*> {
     return this.getEdge(
       VideoCopyrightRule,
@@ -1511,15 +1538,6 @@ export default class Page extends AbstractCrudObject {
       params,
       fetchFirstPage,
       '/video_copyright_rules'
-    );
-  }
-
-  createVideoCopyrightRule (fields: Array<string>, params: Object = {}): Promise<VideoCopyrightRule> {
-    return this.createEdge(
-      '/video_copyright_rules',
-      fields,
-      params,
-      VideoCopyrightRule
     );
   }
 
