@@ -539,7 +539,7 @@ var FacebookAdsApi = function () {
   }, {
     key: 'VERSION',
     get: function get() {
-      return 'v7.0';
+      return 'v8.0';
     }
   }, {
     key: 'GRAPH',
@@ -3543,6 +3543,14 @@ var AdPlacePageSet = function (_AbstractCrudObject) {
         name: 'name',
         pages_count: 'pages_count',
         parent_page: 'parent_page'
+      });
+    }
+  }, {
+    key: 'Category',
+    get: function get() {
+      return Object.freeze({
+        bopus: 'BOPUS',
+        general: 'GENERAL'
       });
     }
   }, {
@@ -11547,7 +11555,8 @@ var ProductCatalog = function (_AbstractCrudObject) {
     get: function get() {
       return Object.freeze({
         advertise: 'ADVERTISE',
-        manage: 'MANAGE'
+        manage: 'MANAGE',
+        manage_ar: 'MANAGE_AR'
       });
     }
   }, {
@@ -11555,7 +11564,8 @@ var ProductCatalog = function (_AbstractCrudObject) {
     get: function get() {
       return Object.freeze({
         advertise: 'ADVERTISE',
-        manage: 'MANAGE'
+        manage: 'MANAGE',
+        manage_ar: 'MANAGE_AR'
       });
     }
   }, {
@@ -12003,6 +12013,14 @@ var CommerceOrderTransactionDetail = function (_AbstractCrudObject) {
   }
 
   createClass(CommerceOrderTransactionDetail, [{
+    key: 'getItems',
+    value: function getItems(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
+
+      return this.getEdge(AbstractObject, fields, params, fetchFirstPage, '/items');
+    }
+  }, {
     key: 'getTaxDetails',
     value: function getTaxDetails(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -13786,51 +13804,6 @@ var Permission = function (_AbstractCrudObject) {
  * 
  */
 /**
- * UserTaggableFriend
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var UserTaggableFriend = function (_AbstractCrudObject) {
-  inherits(UserTaggableFriend, _AbstractCrudObject);
-
-  function UserTaggableFriend() {
-    classCallCheck(this, UserTaggableFriend);
-    return possibleConstructorReturn(this, (UserTaggableFriend.__proto__ || Object.getPrototypeOf(UserTaggableFriend)).apply(this, arguments));
-  }
-
-  createClass(UserTaggableFriend, [{
-    key: 'getPicture',
-    value: function getPicture(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(ProfilePictureSource, fields, params, fetchFirstPage, '/picture');
-    }
-  }], [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        first_name: 'first_name',
-        id: 'id',
-        last_name: 'last_name',
-        middle_name: 'middle_name',
-        name: 'name'
-      });
-    }
-  }]);
-  return UserTaggableFriend;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
  * User
  * @extends AbstractCrudObject
  * @see {@link https://developers.facebook.com/docs/marketing-api/}
@@ -14209,14 +14182,6 @@ var User = function (_AbstractCrudObject) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
       return this.createEdge('/staging_resources', fields, params, User);
-    }
-  }, {
-    key: 'getTaggableFriends',
-    value: function getTaggableFriends(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(UserTaggableFriend, fields, params, fetchFirstPage, '/taggable_friends');
     }
   }, {
     key: 'getVideos',
@@ -14614,14 +14579,6 @@ var LiveVideo = function (_AbstractCrudObject) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
       return this.createEdge('/input_streams', fields, params, LiveVideoInputStream);
-    }
-  }, {
-    key: 'getLikes',
-    value: function getLikes(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(Profile, fields, params, fetchFirstPage, '/likes');
     }
   }, {
     key: 'getPolls',
@@ -15503,14 +15460,6 @@ var NativeOfferView = function (_AbstractCrudObject) {
   }
 
   createClass(NativeOfferView, [{
-    key: 'getPhotos',
-    value: function getPhotos(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(Photo, fields, params, fetchFirstPage, '/photos');
-    }
-  }, {
     key: 'createPhoto',
     value: function createPhoto(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -15737,54 +15686,6 @@ var Persona = function (_AbstractCrudObject) {
     }
   }]);
   return Persona;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
- * PlaceTopic
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var PlaceTopic = function (_AbstractCrudObject) {
-  inherits(PlaceTopic, _AbstractCrudObject);
-
-  function PlaceTopic() {
-    classCallCheck(this, PlaceTopic);
-    return possibleConstructorReturn(this, (PlaceTopic.__proto__ || Object.getPrototypeOf(PlaceTopic)).apply(this, arguments));
-  }
-
-  createClass(PlaceTopic, [{
-    key: 'get',
-    value: function get(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return this.read(fields, params);
-    }
-  }], [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        count: 'count',
-        has_children: 'has_children',
-        icon_url: 'icon_url',
-        id: 'id',
-        name: 'name',
-        parent_ids: 'parent_ids',
-        plural_name: 'plural_name',
-        top_subtopic_names: 'top_subtopic_names'
-      });
-    }
-  }]);
-  return PlaceTopic;
 }(AbstractCrudObject);
 
 /**
@@ -16725,13 +16626,6 @@ var Page = function (_AbstractCrudObject) {
       return this.createEdge('/nlp_configs', fields, params, Page);
     }
   }, {
-    key: 'createPageAboutStory',
-    value: function createPageAboutStory(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/page_about_story', fields, params, Page);
-    }
-  }, {
     key: 'getPageBackedInstagramAccounts',
     value: function getPageBackedInstagramAccounts(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -16804,14 +16698,6 @@ var Page = function (_AbstractCrudObject) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
       return this.createEdge('/picture', fields, params, ProfilePictureSource);
-    }
-  }, {
-    key: 'getPlaceTopics',
-    value: function getPlaceTopics(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(PlaceTopic, fields, params, fetchFirstPage, '/place_topics');
     }
   }, {
     key: 'getPosts',
@@ -16930,13 +16816,6 @@ var Page = function (_AbstractCrudObject) {
       return this.createEdge('/subscribed_apps', fields, params, Page);
     }
   }, {
-    key: 'deleteTabs',
-    value: function deleteTabs() {
-      var params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-
-      return get$1(Page.prototype.__proto__ || Object.getPrototypeOf(Page.prototype), 'deleteEdge', this).call(this, '/tabs', params);
-    }
-  }, {
     key: 'getTabs',
     value: function getTabs(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -16973,20 +16852,6 @@ var Page = function (_AbstractCrudObject) {
       var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
 
       return this.getEdge(PageThreadOwner, fields, params, fetchFirstPage, '/thread_owner');
-    }
-  }, {
-    key: 'deleteThreadSettings',
-    value: function deleteThreadSettings() {
-      var params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-
-      return get$1(Page.prototype.__proto__ || Object.getPrototypeOf(Page.prototype), 'deleteEdge', this).call(this, '/thread_settings', params);
-    }
-  }, {
-    key: 'createThreadSetting',
-    value: function createThreadSetting(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      return this.createEdge('/thread_settings', fields, params, Page);
     }
   }, {
     key: 'getThreads',
@@ -17171,7 +17036,6 @@ var Page = function (_AbstractCrudObject) {
         new_like_count: 'new_like_count',
         offer_eligible: 'offer_eligible',
         overall_star_rating: 'overall_star_rating',
-        page_about_story: 'page_about_story',
         page_token: 'page_token',
         parent_page: 'parent_page',
         parking: 'parking',
@@ -17180,6 +17044,7 @@ var Page = function (_AbstractCrudObject) {
         personal_interests: 'personal_interests',
         pharma_safety_info: 'pharma_safety_info',
         phone: 'phone',
+        pickup_options: 'pickup_options',
         place_type: 'place_type',
         plot_outline: 'plot_outline',
         preferred_audience: 'preferred_audience',
@@ -17293,6 +17158,15 @@ var Page = function (_AbstractCrudObject) {
         vegan: 'Vegan',
         vegetarian: 'Vegetarian',
         vietnamese: 'Vietnamese'
+      });
+    }
+  }, {
+    key: 'PickupOptions',
+    get: function get() {
+      return Object.freeze({
+        curbside: 'CURBSIDE',
+        in_store: 'IN_STORE',
+        other: 'OTHER'
       });
     }
   }, {
@@ -17580,41 +17454,6 @@ var Page = function (_AbstractCrudObject) {
         video_text_question_responses: 'video_text_question_responses',
         videos: 'videos',
         website: 'website'
-      });
-    }
-  }, {
-    key: 'DomainActionType',
-    get: function get() {
-      return Object.freeze({
-        add: 'ADD',
-        remove: 'REMOVE'
-      });
-    }
-  }, {
-    key: 'PaymentDevModeAction',
-    get: function get() {
-      return Object.freeze({
-        add: 'ADD',
-        remove: 'REMOVE'
-      });
-    }
-  }, {
-    key: 'SettingType',
-    get: function get() {
-      return Object.freeze({
-        account_linking: 'ACCOUNT_LINKING',
-        call_to_actions: 'CALL_TO_ACTIONS',
-        domain_whitelisting: 'DOMAIN_WHITELISTING',
-        greeting: 'GREETING',
-        payment: 'PAYMENT'
-      });
-    }
-  }, {
-    key: 'ThreadState',
-    get: function get() {
-      return Object.freeze({
-        existing_thread: 'EXISTING_THREAD',
-        new_thread: 'NEW_THREAD'
       });
     }
   }]);
@@ -17973,39 +17812,6 @@ var InvoiceCampaign = function (_AbstractCrudObject) {
  * 
  */
 /**
- * AtlasURL
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var AtlasURL = function (_AbstractCrudObject) {
-  inherits(AtlasURL, _AbstractCrudObject);
-
-  function AtlasURL() {
-    classCallCheck(this, AtlasURL);
-    return possibleConstructorReturn(this, (AtlasURL.__proto__ || Object.getPrototypeOf(AtlasURL)).apply(this, arguments));
-  }
-
-  createClass(AtlasURL, null, [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        url: 'url'
-      });
-    }
-  }]);
-  return AtlasURL;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
  * OracleTransaction
  * @extends AbstractCrudObject
  * @see {@link https://developers.facebook.com/docs/marketing-api/}
@@ -18028,14 +17834,6 @@ var OracleTransaction = function (_AbstractCrudObject) {
       return this.getEdge(InvoiceCampaign, fields, params, fetchFirstPage, '/campaigns');
     }
   }, {
-    key: 'getData',
-    value: function getData(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(AtlasURL, fields, params, fetchFirstPage, '/data');
-    }
-  }, {
     key: 'get',
     value: function get(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -18052,7 +17850,6 @@ var OracleTransaction = function (_AbstractCrudObject) {
         amount_due: 'amount_due',
         billed_amount_details: 'billed_amount_details',
         billing_period: 'billing_period',
-        campaign: 'campaign',
         cdn_download_uri: 'cdn_download_uri',
         currency: 'currency',
         download_uri: 'download_uri',
@@ -19126,14 +18923,6 @@ var SystemUser = function (_AbstractCrudObject) {
       var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
 
       return this.getEdge(ProductCatalog, fields, params, fetchFirstPage, '/assigned_product_catalogs');
-    }
-  }, {
-    key: 'getUpdatedBy',
-    value: function getUpdatedBy(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(User, fields, params, fetchFirstPage, '/updated_by');
     }
   }, {
     key: 'get',
@@ -22738,13 +22527,6 @@ var AdAccount = function (_AbstractCrudObject) {
       return this.createEdge('/ad_place_page_sets_async', fields, params, AdPlacePageSet);
     }
   }, {
-    key: 'deleteAdSets',
-    value: function deleteAdSets() {
-      var params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-
-      return get$1(AdAccount.prototype.__proto__ || Object.getPrototypeOf(AdAccount.prototype), 'deleteEdge', this).call(this, '/ad_sets', params);
-    }
-  }, {
     key: 'getAdStudies',
     value: function getAdStudies(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -22826,14 +22608,6 @@ var AdAccount = function (_AbstractCrudObject) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
       return this.createEdge('/adplayables', fields, params, PlayableContent);
-    }
-  }, {
-    key: 'getAdReportSchedules',
-    value: function getAdReportSchedules(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(AbstractObject, fields, params, fetchFirstPage, '/adreportschedules');
     }
   }, {
     key: 'getAdRulesHistory',
@@ -28958,7 +28732,6 @@ var AdReportSpec = function (_AbstractCrudObject) {
         id: 'id',
         insights_section: 'insights_section',
         name: 'name',
-        report_schedule: 'report_schedule',
         report_schedule_id: 'report_schedule_id',
         sort_by: 'sort_by',
         sort_dir: 'sort_dir',
@@ -32351,55 +32124,6 @@ var IosAppLink = function (_AbstractCrudObject) {
  * 
  */
 /**
- * IterativeSplitTestConfig
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var IterativeSplitTestConfig = function (_AbstractCrudObject) {
-  inherits(IterativeSplitTestConfig, _AbstractCrudObject);
-
-  function IterativeSplitTestConfig() {
-    classCallCheck(this, IterativeSplitTestConfig);
-    return possibleConstructorReturn(this, (IterativeSplitTestConfig.__proto__ || Object.getPrototypeOf(IterativeSplitTestConfig)).apply(this, arguments));
-  }
-
-  createClass(IterativeSplitTestConfig, [{
-    key: 'get',
-    value: function get(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return this.read(fields, params);
-    }
-  }], [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        budget: 'budget',
-        end_time: 'end_time',
-        guidance: 'guidance',
-        id: 'id',
-        iterative_split_test_original_variant_id: 'iterative_split_test_original_variant_id',
-        iterative_split_test_variant_to_split_mapping: 'iterative_split_test_variant_to_split_mapping',
-        results_window: 'results_window',
-        splits: 'splits',
-        start_time: 'start_time'
-      });
-    }
-  }]);
-  return IterativeSplitTestConfig;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
  * KeyValue
  * @extends AbstractCrudObject
  * @see {@link https://developers.facebook.com/docs/marketing-api/}
@@ -32719,14 +32443,6 @@ var LifeEvent = function (_AbstractCrudObject) {
       return this.getEdge(Profile, fields, params, fetchFirstPage, '/likes');
     }
   }, {
-    key: 'getPhotos',
-    value: function getPhotos(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(Photo, fields, params, fetchFirstPage, '/photos');
-    }
-  }, {
     key: 'get',
     value: function get(fields) {
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -32788,14 +32504,6 @@ var Link = function (_AbstractCrudObject) {
       var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
 
       return this.getEdge(Profile, fields, params, fetchFirstPage, '/likes');
-    }
-  }, {
-    key: 'getReactions',
-    value: function getReactions(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      var fetchFirstPage = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-
-      return this.getEdge(Profile, fields, params, fetchFirstPage, '/reactions');
     }
   }, {
     key: 'getSharedPosts',
@@ -33260,75 +32968,6 @@ var OutcomePredictionPoint = function (_AbstractCrudObject) {
     }
   }]);
   return OutcomePredictionPoint;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
- * PageAboutStory
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var PageAboutStory = function (_AbstractCrudObject) {
-  inherits(PageAboutStory, _AbstractCrudObject);
-
-  function PageAboutStory() {
-    classCallCheck(this, PageAboutStory);
-    return possibleConstructorReturn(this, (PageAboutStory.__proto__ || Object.getPrototypeOf(PageAboutStory)).apply(this, arguments));
-  }
-
-  createClass(PageAboutStory, [{
-    key: 'delete',
-
-
-    // $FlowFixMe : Support Generic Types
-    value: function _delete(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return get$1(PageAboutStory.prototype.__proto__ || Object.getPrototypeOf(PageAboutStory.prototype), 'delete', this).call(this, params);
-    }
-  }, {
-    key: 'get',
-    value: function get(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return this.read(fields, params);
-    }
-
-    // $FlowFixMe : Support Generic Types
-
-  }, {
-    key: 'update',
-    value: function update(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return get$1(PageAboutStory.prototype.__proto__ || Object.getPrototypeOf(PageAboutStory.prototype), 'update', this).call(this, params);
-    }
-  }], [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        composed_text: 'composed_text',
-        cover_photo: 'cover_photo',
-        entity_map: 'entity_map',
-        id: 'id',
-        is_published: 'is_published',
-        page_id: 'page_id',
-        title: 'title'
-      });
-    }
-  }]);
-  return PageAboutStory;
 }(AbstractCrudObject);
 
 /**
@@ -33878,6 +33517,54 @@ var Place = function (_AbstractCrudObject) {
     }
   }]);
   return Place;
+}(AbstractCrudObject);
+
+/**
+ * Copyright (c) 2017-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ * 
+ */
+/**
+ * PlaceTopic
+ * @extends AbstractCrudObject
+ * @see {@link https://developers.facebook.com/docs/marketing-api/}
+ */
+
+var PlaceTopic = function (_AbstractCrudObject) {
+  inherits(PlaceTopic, _AbstractCrudObject);
+
+  function PlaceTopic() {
+    classCallCheck(this, PlaceTopic);
+    return possibleConstructorReturn(this, (PlaceTopic.__proto__ || Object.getPrototypeOf(PlaceTopic)).apply(this, arguments));
+  }
+
+  createClass(PlaceTopic, [{
+    key: 'get',
+    value: function get(fields) {
+      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      // $FlowFixMe : Support Generic Types
+      return this.read(fields, params);
+    }
+  }], [{
+    key: 'Fields',
+    get: function get() {
+      return Object.freeze({
+        count: 'count',
+        has_children: 'has_children',
+        icon_url: 'icon_url',
+        id: 'id',
+        name: 'name',
+        parent_ids: 'parent_ids',
+        plural_name: 'plural_name',
+        top_subtopic_names: 'top_subtopic_names'
+      });
+    }
+  }]);
+  return PlaceTopic;
 }(AbstractCrudObject);
 
 /**
@@ -34831,53 +34518,6 @@ var SecuritySettings = function (_AbstractCrudObject) {
     }
   }]);
   return SecuritySettings;
-}(AbstractCrudObject);
-
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- * 
- */
-/**
- * SplitTestConfig
- * @extends AbstractCrudObject
- * @see {@link https://developers.facebook.com/docs/marketing-api/}
- */
-
-var SplitTestConfig = function (_AbstractCrudObject) {
-  inherits(SplitTestConfig, _AbstractCrudObject);
-
-  function SplitTestConfig() {
-    classCallCheck(this, SplitTestConfig);
-    return possibleConstructorReturn(this, (SplitTestConfig.__proto__ || Object.getPrototypeOf(SplitTestConfig)).apply(this, arguments));
-  }
-
-  createClass(SplitTestConfig, [{
-    key: 'get',
-    value: function get(fields) {
-      var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-      // $FlowFixMe : Support Generic Types
-      return this.read(fields, params);
-    }
-  }], [{
-    key: 'Fields',
-    get: function get() {
-      return Object.freeze({
-        budget: 'budget',
-        early_winner_declaration_enabled: 'early_winner_declaration_enabled',
-        end_time: 'end_time',
-        splits: 'splits',
-        start_time: 'start_time',
-        test_variable: 'test_variable',
-        id: 'id'
-      });
-    }
-  }]);
-  return SplitTestConfig;
 }(AbstractCrudObject);
 
 /**
@@ -36500,6 +36140,6 @@ var WorkUserFrontline = function (_AbstractCrudObject) {
  * LICENSE file in the root directory of this source tree.
  */
 
-export { FacebookAdsApi, FacebookAdsApiBatch, APIRequest, APIResponse, CrashReporter, Content, CustomData, EventRequest, EventResponse, ServerEvent, UserData, DeliveryCategory, Ad, AdAccount, AdAccountActivity, AdAccountAdRulesHistory, AdAccountAdVolume, AdAccountContentFilterLevelsInheritance, AdAccountCreationRequest, AdAccountDefaultDestination, AdAccountDefaultObjective, AdAccountDeliveryEstimate, AdAccountMatchedSearchApplicationsEdgeData, AdAccountMaxBid, AdAccountPromotableObjects, AdAccountReachEstimate, AdAccountRecommendedCamapaignBudget, AdAccountRoas, AdAccountSubscribedApps, AdAccountTargetingUnified, AdAccountTrackingData, AdAccountUser, AdActivity, AdAssetFeedSpec, AdAssetFeedSpecAssetLabel, AdAssetFeedSpecBody, AdAssetFeedSpecCaption, AdAssetFeedSpecDescription, AdAssetFeedSpecGroupRule, AdAssetFeedSpecImage, AdAssetFeedSpecLinkURL, AdAssetFeedSpecTitle, AdAssetFeedSpecVideo, AdAsyncRequest, AdAsyncRequestSet, AdAsyncRequestSetNotificationResult, AdBidAdjustments, AdCampaignActivity, AdCampaignBidConstraint, AdCampaignDeliveryEstimate, AdCampaignDeliveryStatsUnsupportedReasons, AdCampaignFrequencyControlSpecs, AdCampaignGroupActivity, AdCampaignIssuesInfo, AdCampaignLearningStageInfo, AdCampaignOptimizationEvent, AdCampaignPacedBidInfo, AdCreative, AdCreativeAdDisclaimer, AdCreativeCollectionThumbnailInfo, AdCreativeInsights, AdCreativeInteractiveComponentsSpec, AdCreativeLinkData, AdCreativeLinkDataAppLinkSpec, AdCreativeLinkDataCallToAction, AdCreativeLinkDataCallToActionValue, AdCreativeLinkDataChildAttachment, AdCreativeLinkDataImageLayerSpec, AdCreativeLinkDataImageOverlaySpec, AdCreativeLinkDataSponsorshipInfoSpec, AdCreativeLinkDataTemplateVideoSpec, AdCreativeObjectStorySpec, AdCreativePhotoData, AdCreativePhotoDataMediaElements, AdCreativePlaceData, AdCreativePlatformCustomization, AdCreativePortraitCustomizations, AdCreativePostClickConfiguration, AdCreativeRecommenderSettings, AdCreativeStaticFallbackSpec, AdCreativeTemplateURLSpec, AdCreativeTextData, AdCreativeVideoData, AdCustomizationRuleSpec, AdDynamicCreative, AdEntityTargetSpend, AdImage, AdKeywords, AdLabel, AdMonetizationProperty, AdNetworkAnalyticsAsyncQueryResult, AdNetworkAnalyticsSyncQueryResult, AdPlacePageSet, AdPlacePageSetMetadata, AdPlacement, AdPreview, AdPromotedObject, AdRecommendation, AdRecommendationData, AdReportRun, AdReportSpec, AdRule, AdRuleEvaluationSpec, AdRuleExecutionOptions, AdRuleExecutionSpec, AdRuleFilters, AdRuleHistory, AdRuleHistoryResult, AdRuleHistoryResultAction, AdRuleSchedule, AdRuleScheduleSpec, AdRuleTrigger, AdSet, AdStudy, AdStudyCell, AdStudyObjective, AdStudyObjectiveID, AdVideo, AdgroupActivity, AdgroupIssuesInfo, AdgroupPlacementSpecificReviewFeedback, AdgroupRelevanceScore, AdgroupReviewFeedback, AdoptablePet, AdsActionStats, AdsImageCrops, AdsInsights, AdsOptimalDeliveryGrowthOpportunity, AdsPixel, AdsPixelStats, AdsPixelStatsResult, AgeRange, AgencyClientDeclaration, Album, AndroidAppLink, AppRequest, AppRequestFormerRecipient, Application, AssignedUser, AsyncRequest, AsyncSession, AtlasCampaign, AtlasURL, AttributionSpec, AudienceInsightsStudySpec, AudiencePermissionForActions, AudioCopyright, AutomotiveModel, BilledAmountDetails, BrandSafetyBlockListUsage, BroadTargetingCategories, Business, BusinessAdAccountRequest, BusinessAgreement, BusinessApplicationRequest, BusinessAssetGroup, BusinessAssetSharingAgreement, BusinessOwnedObjectOnBehalfOfRequest, BusinessPageRequest, BusinessRoleRequest, BusinessUnit, BusinessUser, CPASParentCatalogSettings, Campaign, CampaignGroupBrandConfiguration, CampaignGroupCollaborativeAdsPartnerInfo, Canvas, CanvasAdSettings, CanvasBodyElement, CanvasCollectionThumbnail, CatalogBasedTargeting, CatalogItemAppLinks, CatalogItemAppealStatus, CheckBatchRequestStatus, ChildEvent, CollaborativeAdsPartnerInfoListItem, CollaborativeAdsShareSettings, Comment, CommerceMerchantSettings, CommerceMerchantSettingsSetupStatus, CommerceOrder, CommerceOrderTransactionDetail, CommercePayout, CommerceSettings, ContentDeliveryReport, ConversionActionQuery, CopyrightReferenceContainer, CoverPhoto, CreativeHistory, CreditPartitionActionOptions, Currency, CurrencyAmount, CustomAudience, CustomAudienceAdAccount, CustomAudienceDataSource, CustomAudienceSession, CustomAudienceSharingStatus, CustomAudienceStatus, CustomAudiencesTOS, CustomAudiencesharedAccountInfo, CustomConversion, CustomConversionStatsResult, CustomUserSettings, DACheck, DayPart, DeliveryCheck, DeliveryCheckExtraInfo, Destination, DestinationCatalogSettings, Domain, DynamicContentSet, DynamicPostChildAttachment, DynamicPriceConfigByDate, Engagement, EntityAtTextRange, Event, EventSourceGroup, EventTour, Experience, ExtendedCredit, ExtendedCreditAllocationConfig, ExtendedCreditInvoiceGroup, ExternalEventSource, FAMEExportConfig, FlexibleTargeting, Flight, FriendList, FundingSourceDetails, FundingSourceDetailsCoupon, Group, HomeListing, Hotel, HotelRoom, IDName, IGComment, IGMedia, IGUser, InsightsResult, InstagramInsightsResult, InstagramInsightsValue, InstagramUser, InstantArticle, InstantArticleInsightsQueryResult, InvoiceCampaign, IosAppLink, IterativeSplitTestConfig, KeyValue, Lead, LeadGenAppointmentBookingInfo, LeadGenConditionalQuestionsGroupChoices, LeadGenConditionalQuestionsGroupQuestions, LeadGenDraftQuestion, LeadGenPostSubmissionCheckResult, LeadGenQuestion, LeadGenQuestionOption, LeadgenForm, LifeEvent, Link, LiveEncoder, LiveVideo, LiveVideoAdBreakConfig, LiveVideoError, LiveVideoInputStream, LiveVideoTargeting, Location, LookalikeSpec, MailingAddress, MeasurementUploadEvent, MediaFingerprint, MessagingFeatureReview, MessengerDestinationPageWelcomeMessage, MessengerProfile, MinimumBudget, MusicVideoCopyright, NativeOffer, NativeOfferDiscount, NativeOfferView, NullNode, OfflineConversionDataSet, OfflineTermsOfService, OffsitePixel, OpenGraphContext, OracleTransaction, OutcomePredictionPoint, Page, PageAboutStory, PageAdminNote, PageCallToAction, PageCategory, PageChangeProposal, PageParking, PagePaymentOptions, PagePost, PageRestaurantServices, PageRestaurantSpecialties, PageSavedFilter, PageSettings, PageStartInfo, PageThreadOwner, PageUpcomingChange, PageUserMessageThreadLabel, PartnerStudy, PaymentPricepoints, PaymentSubscription, Permission, Persona, Photo, Place, PlaceTopic, PlatformImageSource, PlayableContent, Post, Privacy, ProductCatalog, ProductCatalogCategory, ProductCatalogHotelRoomsBatch, ProductCatalogImageSettings, ProductCatalogImageSettingsOperation, ProductCatalogPricingVariablesBatch, ProductCatalogProductSetsBatch, ProductEventStat, ProductFeed, ProductFeedMissingFeedItemReplacement, ProductFeedRule, ProductFeedRuleSuggestion, ProductFeedSchedule, ProductFeedUpload, ProductFeedUploadDiagnosticsReport, ProductFeedUploadError, ProductFeedUploadErrorReport, ProductFeedUploadErrorSample, ProductGroup, ProductItem, ProductItemCommerceInsights, ProductSet, ProductSetMetadata, ProductVariant, Profile, ProfilePictureSource, PublisherBlockList, RTBDynamicPost, RawCustomAudience, ReachFrequencyActivity, ReachFrequencyAdFormat, ReachFrequencyCurveLowerConfidenceRange, ReachFrequencyCurveUpperConfidenceRange, ReachFrequencyDayPart, ReachFrequencyEstimatesCurve, ReachFrequencyEstimatesPlacementBreakdown, ReachFrequencyPrediction, ReachFrequencySpec, ReadOnlyAnalyticsUserPropertyConfig, Recommendation, Referral, RevSharePolicy, RichMediaElement, SavedAudience, SavedMessageResponse, SecuritySettings, SplitTestConfig, SplitTestWinner, StoreCatalogSettings, SystemUser, Tab, Targeting, TargetingDynamicRule, TargetingGeoLocation, TargetingGeoLocationCity, TargetingGeoLocationCustomLocation, TargetingGeoLocationElectoralDistrict, TargetingGeoLocationGeoEntities, TargetingGeoLocationLocationCluster, TargetingGeoLocationLocationExpansion, TargetingGeoLocationMarket, TargetingGeoLocationPlace, TargetingGeoLocationPoliticalDistrict, TargetingGeoLocationRegion, TargetingGeoLocationZip, TargetingProductAudienceSpec, TargetingProductAudienceSubSpec, TargetingProspectingAudience, TargetingRelaxation, TargetingSentenceLine, ThirdPartyMeasurementReportDataset, TrackingAndConversionWithDefaults, URL, UnifiedThread, User, UserCoverPhoto, UserDevice, UserIDForApp, UserIDForPage, UserLeadGenDisclaimerResponse, UserLeadGenFieldData, UserPaymentMethodsInfo, UserPaymentMobilePricepoints, UserPaymentModulesOptions, UserTaggableFriend, ValueBasedEligibleSource, Vehicle, VehicleOffer, VideoCopyright, VideoCopyrightConditionGroup, VideoCopyrightGeoGate, VideoCopyrightRule, VideoCopyrightSegment, VideoList, VideoPoll, VideoThumbnail, VideoUploadLimits, VoipInfo, WebAppLink, WhatsAppBusinessAccount, WindowsAppLink, WindowsPhoneAppLink, WorkMeetingLink, WorkUserFrontline };
+export { FacebookAdsApi, FacebookAdsApiBatch, APIRequest, APIResponse, CrashReporter, Content, CustomData, EventRequest, EventResponse, ServerEvent, UserData, DeliveryCategory, Ad, AdAccount, AdAccountActivity, AdAccountAdRulesHistory, AdAccountAdVolume, AdAccountContentFilterLevelsInheritance, AdAccountCreationRequest, AdAccountDefaultDestination, AdAccountDefaultObjective, AdAccountDeliveryEstimate, AdAccountMatchedSearchApplicationsEdgeData, AdAccountMaxBid, AdAccountPromotableObjects, AdAccountReachEstimate, AdAccountRecommendedCamapaignBudget, AdAccountRoas, AdAccountSubscribedApps, AdAccountTargetingUnified, AdAccountTrackingData, AdAccountUser, AdActivity, AdAssetFeedSpec, AdAssetFeedSpecAssetLabel, AdAssetFeedSpecBody, AdAssetFeedSpecCaption, AdAssetFeedSpecDescription, AdAssetFeedSpecGroupRule, AdAssetFeedSpecImage, AdAssetFeedSpecLinkURL, AdAssetFeedSpecTitle, AdAssetFeedSpecVideo, AdAsyncRequest, AdAsyncRequestSet, AdAsyncRequestSetNotificationResult, AdBidAdjustments, AdCampaignActivity, AdCampaignBidConstraint, AdCampaignDeliveryEstimate, AdCampaignDeliveryStatsUnsupportedReasons, AdCampaignFrequencyControlSpecs, AdCampaignGroupActivity, AdCampaignIssuesInfo, AdCampaignLearningStageInfo, AdCampaignOptimizationEvent, AdCampaignPacedBidInfo, AdCreative, AdCreativeAdDisclaimer, AdCreativeCollectionThumbnailInfo, AdCreativeInsights, AdCreativeInteractiveComponentsSpec, AdCreativeLinkData, AdCreativeLinkDataAppLinkSpec, AdCreativeLinkDataCallToAction, AdCreativeLinkDataCallToActionValue, AdCreativeLinkDataChildAttachment, AdCreativeLinkDataImageLayerSpec, AdCreativeLinkDataImageOverlaySpec, AdCreativeLinkDataSponsorshipInfoSpec, AdCreativeLinkDataTemplateVideoSpec, AdCreativeObjectStorySpec, AdCreativePhotoData, AdCreativePhotoDataMediaElements, AdCreativePlaceData, AdCreativePlatformCustomization, AdCreativePortraitCustomizations, AdCreativePostClickConfiguration, AdCreativeRecommenderSettings, AdCreativeStaticFallbackSpec, AdCreativeTemplateURLSpec, AdCreativeTextData, AdCreativeVideoData, AdCustomizationRuleSpec, AdDynamicCreative, AdEntityTargetSpend, AdImage, AdKeywords, AdLabel, AdMonetizationProperty, AdNetworkAnalyticsAsyncQueryResult, AdNetworkAnalyticsSyncQueryResult, AdPlacePageSet, AdPlacePageSetMetadata, AdPlacement, AdPreview, AdPromotedObject, AdRecommendation, AdRecommendationData, AdReportRun, AdReportSpec, AdRule, AdRuleEvaluationSpec, AdRuleExecutionOptions, AdRuleExecutionSpec, AdRuleFilters, AdRuleHistory, AdRuleHistoryResult, AdRuleHistoryResultAction, AdRuleSchedule, AdRuleScheduleSpec, AdRuleTrigger, AdSet, AdStudy, AdStudyCell, AdStudyObjective, AdStudyObjectiveID, AdVideo, AdgroupActivity, AdgroupIssuesInfo, AdgroupPlacementSpecificReviewFeedback, AdgroupRelevanceScore, AdgroupReviewFeedback, AdoptablePet, AdsActionStats, AdsImageCrops, AdsInsights, AdsOptimalDeliveryGrowthOpportunity, AdsPixel, AdsPixelStats, AdsPixelStatsResult, AgeRange, AgencyClientDeclaration, Album, AndroidAppLink, AppRequest, AppRequestFormerRecipient, Application, AssignedUser, AsyncRequest, AsyncSession, AtlasCampaign, AttributionSpec, AudienceInsightsStudySpec, AudiencePermissionForActions, AudioCopyright, AutomotiveModel, BilledAmountDetails, BrandSafetyBlockListUsage, BroadTargetingCategories, Business, BusinessAdAccountRequest, BusinessAgreement, BusinessApplicationRequest, BusinessAssetGroup, BusinessAssetSharingAgreement, BusinessOwnedObjectOnBehalfOfRequest, BusinessPageRequest, BusinessRoleRequest, BusinessUnit, BusinessUser, CPASParentCatalogSettings, Campaign, CampaignGroupBrandConfiguration, CampaignGroupCollaborativeAdsPartnerInfo, Canvas, CanvasAdSettings, CanvasBodyElement, CanvasCollectionThumbnail, CatalogBasedTargeting, CatalogItemAppLinks, CatalogItemAppealStatus, CheckBatchRequestStatus, ChildEvent, CollaborativeAdsPartnerInfoListItem, CollaborativeAdsShareSettings, Comment, CommerceMerchantSettings, CommerceMerchantSettingsSetupStatus, CommerceOrder, CommerceOrderTransactionDetail, CommercePayout, CommerceSettings, ContentDeliveryReport, ConversionActionQuery, CopyrightReferenceContainer, CoverPhoto, CreativeHistory, CreditPartitionActionOptions, Currency, CurrencyAmount, CustomAudience, CustomAudienceAdAccount, CustomAudienceDataSource, CustomAudienceSession, CustomAudienceSharingStatus, CustomAudienceStatus, CustomAudiencesTOS, CustomAudiencesharedAccountInfo, CustomConversion, CustomConversionStatsResult, CustomUserSettings, DACheck, DayPart, DeliveryCheck, DeliveryCheckExtraInfo, Destination, DestinationCatalogSettings, Domain, DynamicContentSet, DynamicPostChildAttachment, DynamicPriceConfigByDate, Engagement, EntityAtTextRange, Event, EventSourceGroup, EventTour, Experience, ExtendedCredit, ExtendedCreditAllocationConfig, ExtendedCreditInvoiceGroup, ExternalEventSource, FAMEExportConfig, FlexibleTargeting, Flight, FriendList, FundingSourceDetails, FundingSourceDetailsCoupon, Group, HomeListing, Hotel, HotelRoom, IDName, IGComment, IGMedia, IGUser, InsightsResult, InstagramInsightsResult, InstagramInsightsValue, InstagramUser, InstantArticle, InstantArticleInsightsQueryResult, InvoiceCampaign, IosAppLink, KeyValue, Lead, LeadGenAppointmentBookingInfo, LeadGenConditionalQuestionsGroupChoices, LeadGenConditionalQuestionsGroupQuestions, LeadGenDraftQuestion, LeadGenPostSubmissionCheckResult, LeadGenQuestion, LeadGenQuestionOption, LeadgenForm, LifeEvent, Link, LiveEncoder, LiveVideo, LiveVideoAdBreakConfig, LiveVideoError, LiveVideoInputStream, LiveVideoTargeting, Location, LookalikeSpec, MailingAddress, MeasurementUploadEvent, MediaFingerprint, MessagingFeatureReview, MessengerDestinationPageWelcomeMessage, MessengerProfile, MinimumBudget, MusicVideoCopyright, NativeOffer, NativeOfferDiscount, NativeOfferView, NullNode, OfflineConversionDataSet, OfflineTermsOfService, OffsitePixel, OpenGraphContext, OracleTransaction, OutcomePredictionPoint, Page, PageAdminNote, PageCallToAction, PageCategory, PageChangeProposal, PageParking, PagePaymentOptions, PagePost, PageRestaurantServices, PageRestaurantSpecialties, PageSavedFilter, PageSettings, PageStartInfo, PageThreadOwner, PageUpcomingChange, PageUserMessageThreadLabel, PartnerStudy, PaymentPricepoints, PaymentSubscription, Permission, Persona, Photo, Place, PlaceTopic, PlatformImageSource, PlayableContent, Post, Privacy, ProductCatalog, ProductCatalogCategory, ProductCatalogHotelRoomsBatch, ProductCatalogImageSettings, ProductCatalogImageSettingsOperation, ProductCatalogPricingVariablesBatch, ProductCatalogProductSetsBatch, ProductEventStat, ProductFeed, ProductFeedMissingFeedItemReplacement, ProductFeedRule, ProductFeedRuleSuggestion, ProductFeedSchedule, ProductFeedUpload, ProductFeedUploadDiagnosticsReport, ProductFeedUploadError, ProductFeedUploadErrorReport, ProductFeedUploadErrorSample, ProductGroup, ProductItem, ProductItemCommerceInsights, ProductSet, ProductSetMetadata, ProductVariant, Profile, ProfilePictureSource, PublisherBlockList, RTBDynamicPost, RawCustomAudience, ReachFrequencyActivity, ReachFrequencyAdFormat, ReachFrequencyCurveLowerConfidenceRange, ReachFrequencyCurveUpperConfidenceRange, ReachFrequencyDayPart, ReachFrequencyEstimatesCurve, ReachFrequencyEstimatesPlacementBreakdown, ReachFrequencyPrediction, ReachFrequencySpec, ReadOnlyAnalyticsUserPropertyConfig, Recommendation, Referral, RevSharePolicy, RichMediaElement, SavedAudience, SavedMessageResponse, SecuritySettings, SplitTestWinner, StoreCatalogSettings, SystemUser, Tab, Targeting, TargetingDynamicRule, TargetingGeoLocation, TargetingGeoLocationCity, TargetingGeoLocationCustomLocation, TargetingGeoLocationElectoralDistrict, TargetingGeoLocationGeoEntities, TargetingGeoLocationLocationCluster, TargetingGeoLocationLocationExpansion, TargetingGeoLocationMarket, TargetingGeoLocationPlace, TargetingGeoLocationPoliticalDistrict, TargetingGeoLocationRegion, TargetingGeoLocationZip, TargetingProductAudienceSpec, TargetingProductAudienceSubSpec, TargetingProspectingAudience, TargetingRelaxation, TargetingSentenceLine, ThirdPartyMeasurementReportDataset, TrackingAndConversionWithDefaults, URL, UnifiedThread, User, UserCoverPhoto, UserDevice, UserIDForApp, UserIDForPage, UserLeadGenDisclaimerResponse, UserLeadGenFieldData, UserPaymentMethodsInfo, UserPaymentMobilePricepoints, UserPaymentModulesOptions, ValueBasedEligibleSource, Vehicle, VehicleOffer, VideoCopyright, VideoCopyrightConditionGroup, VideoCopyrightGeoGate, VideoCopyrightRule, VideoCopyrightSegment, VideoList, VideoPoll, VideoThumbnail, VideoUploadLimits, VoipInfo, WebAppLink, WhatsAppBusinessAccount, WindowsAppLink, WindowsPhoneAppLink, WorkMeetingLink, WorkUserFrontline };
 
 //# sourceMappingURL=es.js.map
